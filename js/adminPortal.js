@@ -10,6 +10,8 @@ const DEFAULT_PACKAGES = [
 ];
 
 let currentPackages = [];
+let allStudents = [];
+let allEnrollments = [];
 
 function loadPackages() {
   const saved = localStorage.getItem('zool_packages');
@@ -53,7 +55,6 @@ function renderPackagesEditor() {
   preview.innerHTML = '';
 
   currentPackages.forEach((pkg, idx) => {
-    // Editor row
     const div = document.createElement('div');
     div.className = 'package-row bg-slate-50 rounded-xl p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3';
     div.innerHTML = `
@@ -67,7 +68,6 @@ function renderPackagesEditor() {
     `;
     editor.appendChild(div);
 
-    // Preview row
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="px-4 py-3 font-medium text-slate-800">${escapeHtml(pkg.level)}</td>
@@ -134,28 +134,57 @@ async function loadAdminData() {
   await loadPendingReceipts();
 }
 
+function filterStudents() {
+  const query = document.getElementById('student-search').value.trim().toLowerCase();
+  renderStudents(allStudents.filter(s =>
+    (s.studentName || '').toLowerCase().includes(query) ||
+    (s.studentID || '').toLowerCase().includes(query) ||
+    (s.parentIC || '').toString().toLowerCase().includes(query) ||
+    (s.parentName || '').toLowerCase().includes(query) ||
+    (s.schoolLevel || '').toLowerCase().includes(query)
+  ));
+}
+
 async function loadStudentsList() {
   const container = document.getElementById('students-list');
   if (!container) return;
   container.innerHTML = '<p class="text-sm text-slate-500">Memuatkan...</p>';
   const data = await listStudents();
-  if (data.error || !data.students.length) {
+  if (data.error) {
+    container.innerHTML = '<p class="text-sm text-red-500">Ralat memuatkan pelajar.</p>';
+    return;
+  }
+  allStudents = data.students || [];
+  filterStudents();
+}
+
+function renderStudents(students) {
+  const container = document.getElementById('students-list');
+  if (!students.length) {
     container.innerHTML = '<p class="text-sm text-slate-500">Tiada pelajar.</p>';
     return;
   }
   container.innerHTML = '';
-  data.students.forEach(s => {
+  students.forEach(s => {
     const div = document.createElement('div');
     div.className = 'border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50';
     div.innerHTML = `
       <div>
-        <p class="font-semibold text-slate-800">${s.studentName} <span class="text-xs font-normal text-slate-500">(${s.studentID})</span></p>
-        <p class="text-sm text-slate-600">${s.schoolLevel} • ${s.parentName} • ${s.parentPhone}</p>
+        <p class="font-semibold text-slate-800">${escapeHtml(s.studentName)} <span class="text-xs font-normal text-slate-500">(${escapeHtml(s.studentID)})</span></p>
+        <p class="text-sm text-slate-600">${escapeHtml(s.schoolLevel)} • ${escapeHtml(s.parentName)} • ${escapeHtml(s.parentPhone)} • IC: ${escapeHtml(String(s.parentIC))}</p>
       </div>
-      <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${s.status}</span>
+      <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${escapeHtml(s.status)}</span>
     `;
     container.appendChild(div);
   });
+}
+
+function filterEnrollments() {
+  const query = document.getElementById('enrollment-search').value.trim().toLowerCase();
+  renderEnrollments(allEnrollments.filter(e =>
+    (e.subject || '').toLowerCase().includes(query) ||
+    (e.studentID || '').toLowerCase().includes(query)
+  ));
 }
 
 async function loadEnrollmentsList() {
@@ -163,20 +192,30 @@ async function loadEnrollmentsList() {
   if (!container) return;
   container.innerHTML = '<p class="text-sm text-slate-500">Memuatkan...</p>';
   const data = await listEnrollments();
-  if (data.error || !data.enrollments.length) {
+  if (data.error) {
+    container.innerHTML = '<p class="text-sm text-red-500">Ralat memuatkan subjek.</p>';
+    return;
+  }
+  allEnrollments = data.enrollments || [];
+  filterEnrollments();
+}
+
+function renderEnrollments(enrollments) {
+  const container = document.getElementById('enrollments-list');
+  if (!enrollments.length) {
     container.innerHTML = '<p class="text-sm text-slate-500">Tiada subjek.</p>';
     return;
   }
   container.innerHTML = '';
-  data.enrollments.forEach(e => {
+  enrollments.forEach(e => {
     const div = document.createElement('div');
     div.className = 'border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50';
     div.innerHTML = `
       <div>
-        <p class="font-semibold text-slate-800">${e.subject}</p>
-        <p class="text-sm text-slate-600">${e.studentID} • RM ${Number(e.monthlyFee).toFixed(2)} • ${e.hoursPerMonth} jam/bulan</p>
+        <p class="font-semibold text-slate-800">${escapeHtml(e.subject)}</p>
+        <p class="text-sm text-slate-600">${escapeHtml(e.studentID)} • RM ${Number(e.monthlyFee).toFixed(2)} • ${escapeHtml(e.hoursPerMonth)} jam/bulan</p>
       </div>
-      <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${e.status}</span>
+      <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${escapeHtml(e.status)}</span>
     `;
     container.appendChild(div);
   });
@@ -198,13 +237,13 @@ async function loadPendingReceipts() {
     div.className = 'border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-50';
     div.innerHTML = `
       <div>
-        <p class="font-semibold text-slate-800">${r.studentID || r.parentIC} — ${r.monthYear}</p>
-        <p class="text-sm text-slate-600">Kaedah: ${r.paymentMethod} | Jumlah: RM ${Number(r.amountPaid || 0).toFixed(2)}</p>
+        <p class="font-semibold text-slate-800">${escapeHtml(r.studentID || r.parentIC)} — ${escapeHtml(r.monthYear)}</p>
+        <p class="text-sm text-slate-600">Kaedah: ${escapeHtml(r.paymentMethod)} | Jumlah: RM ${Number(r.amountPaid || 0).toFixed(2)}</p>
         <a href="${r.receiptURL}" target="_blank" class="text-blue-600 text-sm hover:underline">Lihat Resit</a>
       </div>
       <div class="flex gap-2">
-        <button onclick="approve('${r.paymentID}', 'Approved')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Lulus</button>
-        <button onclick="approve('${r.paymentID}', 'Rejected')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-400 transition">Tolak</button>
+        <button onclick="approve('${escapeHtml(r.paymentID)}', 'Approved')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-500 transition">Lulus</button>
+        <button onclick="approve('${escapeHtml(r.paymentID)}', 'Rejected')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-400 transition">Tolak</button>
       </div>
     `;
     container.appendChild(div);
