@@ -14,12 +14,13 @@ async function gasGet(params) {
 
 async function gasPost(payload) {
   try {
+    // Use text/plain to avoid CORS preflight — GAS web apps handle simple requests automatically
     const res = await fetch(API, {
       method: 'POST',
       body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'text/plain' }
     });
-    if (!res.ok) return { error: `HTTP ${res.status}: ${res.statusText}` };
+    if (!res.ok) return { error: 'HTTP ' + res.status + ': ' + res.statusText };
     return res.json();
   } catch (err) {
     console.error('gasPost failed:', err);

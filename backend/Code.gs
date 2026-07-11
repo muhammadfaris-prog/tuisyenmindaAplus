@@ -37,14 +37,10 @@ function setupSheets() {
 
 function jsonResponse(data, statusCode) {
   statusCode = statusCode || 200;
-  // HtmlService is needed because ContentService.TextOutput lacks setHeader()
-  const output = HtmlService.createHtmlOutput(JSON.stringify(data))
-    .setHeader('Content-Type', 'application/json')
-    .setHeader('Access-Control-Allow-Origin', '*')
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    .setHeader('Access-Control-Max-Age', '86400')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  // GAS web apps (deployed as 'Anyone') automatically add CORS headers for simple requests.
+  // The frontend uses Content-Type: text/plain to avoid triggering a CORS preflight.
+  const output = ContentService.createTextOutput(JSON.stringify(data));
+  output.setMimeType(ContentService.MimeType.JSON);
   return output;
 }
 
@@ -131,11 +127,6 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    // Handle CORS preflight (OPTIONS) — browser sends empty body
-    if (!e.postData || !e.postData.contents || e.postData.contents.trim() === '') {
-      return jsonResponse({ status: 'ok', message: 'CORS preflight acknowledged' });
-    }
-
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
 
