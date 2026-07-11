@@ -39,6 +39,11 @@ function jsonResponse(data, statusCode) {
   statusCode = statusCode || 200;
   const output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
+  // CORS headers — allow browser access from any origin
+  output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  output.setHeader('Access-Control-Max-Age', '86400');
   return output;
 }
 
@@ -125,6 +130,11 @@ function doGet(e) {
 
 function doPost(e) {
   try {
+    // Handle CORS preflight (OPTIONS) — browser sends empty body
+    if (!e.postData || !e.postData.contents || e.postData.contents.trim() === '') {
+      return jsonResponse({ status: 'ok', message: 'CORS preflight acknowledged' });
+    }
+
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
 

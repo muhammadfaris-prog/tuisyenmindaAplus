@@ -96,7 +96,18 @@ async function submitStudent() {
     schoolLevel: document.getElementById('a-schoolLevel').value,
     registrationFee: document.getElementById('a-regFee').value
   };
+
+  // Basic validation
+  if (!student.parentIC || !student.studentName) {
+    alert('Sila isi sekurang-kurangnya IC Ibu Bapa dan Nama Pelajar.');
+    return;
+  }
+
   const res = await addStudent(student);
+  if (res.error) {
+    alert('Ralat: ' + res.error);
+    return;
+  }
   alert(res.success ? `Pelajar disimpan: ${res.studentID}` : res.error);
   if (res.success) {
     clearStudentForm();
@@ -151,7 +162,7 @@ async function loadStudentsList() {
   container.innerHTML = '<p class="text-sm text-slate-500">Memuatkan...</p>';
   const data = await listStudents();
   if (data.error) {
-    container.innerHTML = '<p class="text-sm text-red-500">Ralat memuatkan pelajar.</p>';
+    container.innerHTML = `<p class="text-sm text-red-500">Ralat memuatkan pelajar: ${data.error}</p>`;
     return;
   }
   allStudents = data.students || [];
@@ -193,7 +204,7 @@ async function loadEnrollmentsList() {
   container.innerHTML = '<p class="text-sm text-slate-500">Memuatkan...</p>';
   const data = await listEnrollments();
   if (data.error) {
-    container.innerHTML = '<p class="text-sm text-red-500">Ralat memuatkan subjek.</p>';
+    container.innerHTML = `<p class="text-sm text-red-500">Ralat memuatkan subjek: ${data.error}</p>`;
     return;
   }
   allEnrollments = data.enrollments || [];
@@ -226,7 +237,11 @@ async function loadPendingReceipts() {
   if (!container) return;
   container.innerHTML = '<p class="text-sm text-slate-500">Memuatkan...</p>';
   const data = await listPendingReceipts();
-  if (data.error || !data.receipts.length) {
+  if (data.error) {
+    container.innerHTML = `<p class="text-sm text-red-500">Ralat memuatkan resit: ${data.error}</p>`;
+    return;
+  }
+  if (!data.receipts || !data.receipts.length) {
     container.innerHTML = '<p class="text-sm text-slate-500">Tiada resit menunggu.</p>';
     return;
   }

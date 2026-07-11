@@ -1,18 +1,30 @@
 const API = window.APP_CONFIG.GAS_API_URL;
 
 async function gasGet(params) {
-  const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${API}?${qs}`);
-  return res.json();
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${API}?${qs}`);
+    if (!res.ok) return { error: `HTTP ${res.status}: ${res.statusText}` };
+    return res.json();
+  } catch (err) {
+    console.error('gasGet failed:', err);
+    return { error: 'Rangkaian gagal. Sila cuba lagi.' };
+  }
 }
 
 async function gasPost(payload) {
-  const res = await fetch(API, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  return res.json();
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) return { error: `HTTP ${res.status}: ${res.statusText}` };
+    return res.json();
+  } catch (err) {
+    console.error('gasPost failed:', err);
+    return { error: 'Rangkaian gagal. Sila cuba lagi.' };
+  }
 }
 
 async function getStudentByIC(ic) {

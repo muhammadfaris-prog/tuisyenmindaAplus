@@ -4,6 +4,7 @@ async function lookupStudent() {
 
   const data = await getStudentByIC(ic);
   if (data.error) return alert(data.error);
+  if (!data.studentID) return alert('Pelajar tidak dijumpai.');
 
   state.student = data;
   document.getElementById('student-info').classList.remove('hidden');
