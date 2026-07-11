@@ -37,13 +37,14 @@ function setupSheets() {
 
 function jsonResponse(data, statusCode) {
   statusCode = statusCode || 200;
-  const output = ContentService.createTextOutput(JSON.stringify(data));
-  output.setMimeType(ContentService.MimeType.JSON);
-  // CORS headers — allow browser access from any origin
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  output.setHeader('Access-Control-Max-Age', '86400');
+  // HtmlService is needed because ContentService.TextOutput lacks setHeader()
+  const output = HtmlService.createHtmlOutput(JSON.stringify(data))
+    .setHeader('Content-Type', 'application/json')
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    .setHeader('Access-Control-Max-Age', '86400')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   return output;
 }
 
