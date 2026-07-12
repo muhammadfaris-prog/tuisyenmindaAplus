@@ -2,9 +2,9 @@
 const DEFAULT_PACKAGES = [
   { level: 'Tingkatan 5', subjects: 'Matematik, B.Inggeris, Sejarah, Sains, Fizik, Kimia, Add Math, Prinsip Akaun', hours: '5 jam', classSize: 'Maksimum 8', registration: 60, monthly: 80, note: 'RM 80 / subjek' },
   { level: 'Darjah 1 & 2', subjects: 'Matematik, B.Inggeris, Sains, Prinsip Akaun, Add Math', hours: '4 jam', classSize: 'Maksimum 8', registration: 50, monthly: 80, note: 'RM 80 / subjek' },
-  { level: 'Tingkatan 1, 2, 3 & 4', subjects: 'Matematik, B.Melayu, B.Inggeris, Sains', hours: '4 jam', classSize: 'Maksimum 16', registration: 50, monthly: 0, note: '1 Subjek: RM40, 2: RM80, 3: RM90, 4: RM100 (Pakej Jimat)' },
+  { level: 'Tingkatan 1, 2, 3 & 4', subjects: 'Matematik, B.Melayu, B.Inggeris, Sains', hours: '4 jam', classSize: 'Maksimum 16', registration: 50, monthly: 80, note: 'RM 80 / subjek' },
   { level: 'UPKK', subjects: 'Matematik & B.Inggeris', hours: '4 jam', classSize: 'Maksimum 10', registration: 50, monthly: 40, note: 'RM 40 / subjek' },
-  { level: 'Darjah 3, 4, 5 & 6', subjects: 'Kelas Membaca', hours: '-', classSize: 'Maksimum 6', registration: 30, monthly: 80, note: 'RM 80' },
+  { level: 'Darjah 3, 4, 5 & 6', subjects: 'Matematik, B.Inggeris, Sains, B.Melayu', hours: '4 jam', classSize: 'Maksimum 10', registration: 30, monthly: 0, note: '1 Subjek: RM40, 2: RM80, 3: RM90, 4: RM100 (Pakej Jimat)' },
   { level: 'Kelas Membaca', subjects: 'Bahasa Arab & Jawi', hours: '4 jam', classSize: 'Maksimum 10', registration: 50, monthly: 60, note: 'RM 60 / subjek' },
   { level: 'Personal Class (1 to 1)', subjects: 'Any', hours: 'Minimum 1 jam/minggu', classSize: 'Maksimum 2', registration: 30, monthly: 0, note: 'T4-5: RM60/jam, T1-3: RM50/jam, D1-6: RM40/jam' }
 ];
@@ -229,6 +229,8 @@ async function loadStudentsList() {
     return;
   }
   allStudents = data.students || [];
+  // Hide inactive students
+  allStudents = allStudents.filter(s => s.status !== 'Inactive');
   filterStudents();
 }
 
