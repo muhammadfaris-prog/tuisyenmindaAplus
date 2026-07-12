@@ -78,6 +78,7 @@ function setAdminTab(tab) {
     tabBtn.classList.add('bg-emerald-700', 'text-white');
   }
   if (tab === 'packages') renderPackagesEditor();
+  if (tab === 'payments') loadPaymentTracker();
 }
 
 // Simple router from URL ?page=...

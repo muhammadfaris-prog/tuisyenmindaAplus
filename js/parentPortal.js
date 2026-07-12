@@ -44,7 +44,21 @@ function showQRCode() {
 }
 
 function showReceiptUpload(billCode) {
+  // Ensure month is selected before allowing upload
+  const monthYear = document.getElementById('payment-month').value;
+  if (!monthYear) {
+    alert('Sila pilih BULAN bayaran terlebih dahulu sebelum muat naik resit.');
+    document.getElementById('payment-month').focus();
+    return;
+  }
   document.getElementById('receipt-section').classList.remove('hidden');
+  // Display selected month
+  const disp = document.getElementById('receipt-month-display');
+  if (disp) {
+    const parts = monthYear.split('-');
+    const monthNames = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+    disp.textContent = monthNames[parseInt(parts[1])] + ' ' + parts[0];
+  }
   if (billCode) state.pendingBill = billCode;
   document.getElementById('receipt-section').scrollIntoView({ behavior: 'smooth' });
 }
@@ -53,6 +67,9 @@ async function submitReceipt() {
   const fileInput = document.getElementById('receipt-file');
   if (!fileInput.files[0]) return alert('Sila pilih fail resit.');
   if (!state.student) return alert('Sila semak IC terlebih dahulu.');
+
+  const monthYear = document.getElementById('payment-month').value;
+  if (!monthYear) return alert('Sila pilih BULAN bayaran sebelum hantar resit.');
 
   const file = fileInput.files[0];
   const reader = new FileReader();

@@ -75,3 +75,7 @@ async function updateReceiptStatus(paymentID, status, notes) {
 async function updateStudent(studentID, updates) {
   return gasPost({ action: 'updateStudent', studentID, ...updates });
 }
+
+async function getPaymentSummary() {
+  return gasPost({ action: 'paymentSummary' });
+}

@@ -39,7 +39,9 @@ function savePackages() {
 }
 
 function addBlankPackage() {
+  loadPackages();
   currentPackages.push({ level: '', subjects: '', hours: '', classSize: '', registration: 0, monthly: 0, note: '' });
+  localStorage.setItem('zool_packages', JSON.stringify(currentPackages));
   renderPackagesEditor();
 }
 
@@ -148,6 +150,7 @@ async function loadAdminData() {
   await loadStudentsList();
   await loadEnrollmentsList();
   await loadPendingReceipts();
+  if (state.adminTab === 'payments') loadPaymentTracker();
 }
 
 function filterStudents() {
@@ -324,6 +327,109 @@ function renderEnrollments(enrollments) {
     `;
     container.appendChild(div);
   });
+}
+
+// --- Payment Tracker ---
+let paymentSummaryData = null;
+
+async function loadPaymentTracker() {
+  const container = document.getElementById('payments-tracker');
+  if (!container) return;
+  container.innerHTML = '<p class="text-sm text-slate-500 text-center py-8">Memuatkan data bayaran...</p>';
+  const data = await getPaymentSummary();
+  if (data.error) {
+    container.innerHTML = '<p class="text-sm text-red-500">Ralat: ' + data.error + '</p>';
+    return;
+  }
+  paymentSummaryData = data;
+  renderPaymentTracker('all');
+}
+
+function renderPaymentTracker(filterMonth) {
+  const container = document.getElementById('payments-tracker');
+  if (!container || !paymentSummaryData) return;
+
+  const { months, students } = paymentSummaryData;
+  const displayMonths = filterMonth === 'all' ? months : months.filter(m => m === filterMonth);
+
+  // Build month filter dropdown
+  let monthFilterHTML = '<select id="payment-month-filter" onchange="renderPaymentTracker(this.value)" class="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">';
+  monthFilterHTML += '<option value="all" ' + (filterMonth === 'all' ? 'selected' : '') + '>Semua Bulan</option>';
+  months.forEach(m => {
+    const label = formatMonthYear(m);
+    monthFilterHTML += '<option value="' + m + '" ' + (filterMonth === m ? 'selected' : '') + '>' + label + '</option>';
+  });
+  monthFilterHTML += '</select>';
+
+  // Summary stats
+  let totalPaid = 0, totalPending = 0, totalUnpaid = 0;
+  students.forEach(st => {
+    months.forEach(m => {
+      const status = st.monthStatus[m];
+      if (status === 'Approved') totalPaid++;
+      else if (status === 'Pending') totalPending++;
+      else if (!status) totalUnpaid++;
+    });
+  });
+
+  let html = `
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
+      <div class="flex gap-4 text-sm">
+        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium">✅ Lulus: ${totalPaid}</span>
+        <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium">⏳ Menunggu: ${totalPending}</span>
+        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full font-medium">❌ Belum: ${totalUnpaid}</span>
+      </div>
+      ${monthFilterHTML}
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-slate-50 text-slate-600 uppercase text-xs">
+          <tr>
+            <th class="px-3 py-3 rounded-l-lg sticky left-0 bg-slate-50">Pelajar</th>
+            <th class="px-3 py-3">Tahap</th>
+            <th class="px-3 py-3">Yuran (RM)</th>`;
+
+  displayMonths.forEach(m => {
+    html += '<th class="px-3 py-3 text-center">' + formatMonthYear(m) + '</th>';
+  });
+
+  html += '<th class="px-3 py-3 rounded-r-lg text-center">Tindakan</th></tr></thead><tbody class="divide-y divide-slate-100">';
+
+  students.forEach(st => {
+    html += '<tr class="hover:bg-slate-50">';
+    html += '<td class="px-3 py-3 font-medium text-slate-800 sticky left-0 bg-white">' + escapeHtml(st.studentName) + '<br><span class="text-xs text-slate-400">' + escapeHtml(st.studentID) + '</span></td>';
+    html += '<td class="px-3 py-3 text-slate-600">' + escapeHtml(st.schoolLevel) + '</td>';
+    html += '<td class="px-3 py-3 font-medium text-emerald-700">' + Number(st.monthlyFee).toFixed(2) + '</td>';
+
+    displayMonths.forEach(m => {
+      const status = st.monthStatus[m];
+      if (status === 'Approved') {
+        html += '<td class="px-3 py-3 text-center"><span class="text-emerald-600 font-medium">✅</span></td>';
+      } else if (status === 'Pending') {
+        html += '<td class="px-3 py-3 text-center"><span class="text-amber-600 font-medium">⏳</span></td>';
+      } else {
+        html += '<td class="px-3 py-3 text-center"><span class="text-red-400">—</span></td>';
+      }
+    });
+
+    html += '<td class="px-3 py-3 text-center"><a href="#" onclick="navigate(\'parent\'); document.getElementById(\'parent-ic\').value=\'' + escapeHtml(String(st.parentIC || '')) + '\';" class="text-xs text-blue-600 hover:underline">Resit</a></td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+
+  if (!students.length) {
+    html = '<p class="text-sm text-slate-500 text-center py-8">Tiada pelajar aktif.</p>';
+  }
+
+  container.innerHTML = html;
+}
+
+function formatMonthYear(ym) {
+  if (!ym) return '';
+  const parts = String(ym).split('-');
+  const monthNames = ['', 'Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
+  return monthNames[parseInt(parts[1])] + ' ' + parts[0];
 }
 
 async function loadPendingReceipts() {

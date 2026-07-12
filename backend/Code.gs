@@ -175,6 +175,11 @@ function doPost(e) {
       return handleUpdateStudent(params);
     }
 
+    // 10. ADMIN: PAYMENT SUMMARY (monthly tracking)
+    if (action === 'paymentSummary') {
+      return handlePaymentSummary(params);
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400);
   } catch (err) {
     return jsonResponse({ error: err.toString() }, 500);
@@ -463,4 +468,93 @@ function handleUpdateReceiptStatus(params) {
     }
   }
   return jsonResponse({ error: 'Payment not found' }, 404);
+}
+
+function handlePaymentSummary(params) {
+  const studentsSheet = getSheet(SHEET_NAME_STUDENTS);
+  const paymentsSheet = getSheet(SHEET_NAME_PAYMENTS);
+  const studentData = studentsSheet.getDataRange().getValues();
+  const paymentData = paymentsSheet.getDataRange().getValues();
+
+  // Collect active students
+  const students = [];
+  for (let i = 1; i < studentData.length; i++) {
+    if (studentData[i][8] === 'Active') {
+      students.push({
+        studentID: String(studentData[i][0]),
+        studentName: studentData[i][4],
+        schoolLevel: studentData[i][5],
+        parentIC: String(studentData[i][1]),
+        parentName: studentData[i][2],
+        parentPhone: studentData[i][3],
+        registrationFee: studentData[i][6] || 0
+      });
+    }
+  }
+
+  // Collect payments indexed by studentID + monthYear
+  const paymentMap = {};
+  const allMonths = new Set();
+  for (let i = 1; i < paymentData.length; i++) {
+    const sid = String(paymentData[i][1] || '');
+    const month = String(paymentData[i][3] || '').trim();
+    if (!month) continue;
+    allMonths.add(month);
+    const key = sid + '|' + month;
+    if (!paymentMap[key]) {
+      paymentMap[key] = {
+        studentID: sid,
+        monthYear: month,
+        amountDue: Number(paymentData[i][4] || 0),
+        amountPaid: Number(paymentData[i][5] || 0),
+        paymentMethod: paymentData[i][6] || '',
+        adminApproval: paymentData[i][11] || '',
+        receiptURL: paymentData[i][9] || '',
+        paidAt: paymentData[i][14] || ''
+      };
+    } else {
+      // Merge: keep the latest/best status
+      const existing = paymentMap[key];
+      if (paymentData[i][11] === 'Approved') existing.adminApproval = 'Approved';
+      if (paymentData[i][9]) existing.receiptURL = paymentData[i][9];
+      if (paymentData[i][14]) existing.paidAt = paymentData[i][14];
+      existing.amountPaid += Number(paymentData[i][5] || 0);
+    }
+  }
+
+  // Sort months
+  const months = Array.from(allMonths).sort();
+
+  // Build per-student payment status
+  const studentPayments = students.map(st => {
+    // Calculate monthly fee from enrollments
+    const feeInfo = calculateMonthlyFee(st.studentID);
+    const monthlyFee = feeInfo.total;
+
+    const monthStatus = {};
+    months.forEach(m => {
+      const key = st.studentID + '|' + m;
+      const p = paymentMap[key];
+      monthStatus[m] = p ? p.adminApproval || 'Pending' : null;
+    });
+
+    return {
+      studentID: st.studentID,
+      studentName: st.studentName,
+      schoolLevel: st.schoolLevel,
+      parentName: st.parentName,
+      monthlyFee: monthlyFee,
+      monthStatus: monthStatus,
+      paymentDetails: months.map(m => {
+        const key = st.studentID + '|' + m;
+        return paymentMap[key] || null;
+      })
+    };
+  });
+
+  return jsonResponse({
+    success: true,
+    months: months,
+    students: studentPayments
+  });
 }
