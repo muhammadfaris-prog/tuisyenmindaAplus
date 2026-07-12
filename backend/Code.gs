@@ -181,6 +181,11 @@ function doPost(e) {
       return handlePaymentSummary(params);
     }
 
+    // 11. ADMIN: UPDATE ENROLLMENT
+    if (action === 'updateEnrollment') {
+      return handleUpdateEnrollment(params);
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400);
   } catch (err) {
     return jsonResponse({ error: err.toString() }, 500);
@@ -401,6 +406,25 @@ function handleAddEnrollment(params) {
   ]);
 
   return jsonResponse({ success: true, enrollmentID: enrollmentID });
+}
+
+function handleUpdateEnrollment(params) {
+  const sheet = getSheet(SHEET_NAME_ENROLLMENTS);
+  const data = sheet.getDataRange().getValues();
+  const enrollmentID = params.enrollmentID;
+  if (!enrollmentID) return jsonResponse({ error: 'enrollmentID is required' }, 400);
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(enrollmentID).trim()) {
+      const row = i + 1;
+      if (params.subject !== undefined)      sheet.getRange(row, 3).setValue(params.subject);
+      if (params.monthlyFee !== undefined)   sheet.getRange(row, 4).setValue(params.monthlyFee);
+      if (params.hoursPerMonth !== undefined) sheet.getRange(row, 5).setValue(params.hoursPerMonth);
+      if (params.status !== undefined)       sheet.getRange(row, 7).setValue(params.status);
+      return jsonResponse({ success: true, enrollmentID: enrollmentID });
+    }
+  }
+  return jsonResponse({ error: 'Enrollment not found' }, 404);
 }
 
 function handleListStudents(params) {

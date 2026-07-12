@@ -80,3 +80,7 @@ async function updateStudent(studentID, updates) {
 async function getPaymentSummary() {
   return gasPost({ action: 'paymentSummary' });
 }
+
+async function updateEnrollment(enrollmentID, updates) {
+  return gasPost({ action: 'updateEnrollment', enrollmentID, ...updates });
+}

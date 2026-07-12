@@ -313,6 +313,81 @@ function filterEnrollments() {
   ));
 }
 
+// --- Edit / Remove Enrollment ---
+function editEnrollment(enrollmentID) {
+  const e = allEnrollments.find(en => en.enrollmentID === enrollmentID);
+  if (!e) return;
+
+  let modal = document.getElementById('edit-enrollment-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'edit-enrollment-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/40';
+    modal.onclick = function(ev) { if (ev.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="bg-slate-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-amber-400">Edit Subjek</h3>
+        <button onclick="document.getElementById('edit-enrollment-modal').remove()" class="text-slate-400 hover:text-red-400 text-xl">&times;</button>
+      </div>
+      <p class="text-sm text-slate-400 mb-4">Enrollment ID: <strong>${escapeHtml(e.enrollmentID)}</strong></p>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400">Subjek</label>
+          <select id="edit-enroll-subject" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
+            <option value="">Pilih Subjek</option>
+            ${['Matematik','B.Inggeris','Sejarah','Sains','Fizik','Kimia','Add Math','Prinsip Akaun','B.Melayu','Bahasa Arab','Jawi'].map(s => `<option ${s === e.subject ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Yuran Bulanan (RM)</label>
+          <input id="edit-enroll-fee" type="number" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(e.monthlyFee||0)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Jam Sebulan</label>
+          <input id="edit-enroll-hours" type="number" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(e.hoursPerMonth||4)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Status</label>
+          <select id="edit-enroll-status" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
+            <option value="Active" ${e.status === 'Active' ? 'selected' : ''}>Aktif</option>
+            <option value="Dropped" ${e.status === 'Dropped' ? 'selected' : ''}>Gugur</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button onclick="saveEditEnrollment('${escapeHtml(e.enrollmentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Simpan</button>
+        <button onclick="document.getElementById('edit-enrollment-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveEditEnrollment(enrollmentID) {
+  const updates = {
+    subject: document.getElementById('edit-enroll-subject').value,
+    monthlyFee: document.getElementById('edit-enroll-fee').value,
+    hoursPerMonth: document.getElementById('edit-enroll-hours').value,
+    status: document.getElementById('edit-enroll-status').value
+  };
+  const res = await updateEnrollment(enrollmentID, updates);
+  if (res.error) { alert('Ralat: ' + res.error); return; }
+  alert('Subjek dikemaskini.');
+  document.getElementById('edit-enrollment-modal').remove();
+  loadAdminData();
+}
+
+async function removeEnrollment(enrollmentID) {
+  if (!confirm('Buang subjek ini? Status akan ditukar ke Dropped.')) return;
+  const res = await updateEnrollment(enrollmentID, { status: 'Dropped' });
+  if (res.error) { alert('Ralat: ' + res.error); return; }
+  alert('Subjek dibuang.');
+  loadAdminData();
+}
+
 async function loadEnrollmentsList() {
   const container = document.getElementById('enrollments-list');
   if (!container) return;
@@ -340,11 +415,15 @@ function renderEnrollments(enrollments) {
       <div class="flex items-start gap-3">
         <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
         <div>
-          <p class="font-semibold text-slate-100">${escapeHtml(e.subject)}</p>
-          <p class="text-sm text-slate-400">${escapeHtml(e.studentID)} • RM ${Number(e.monthlyFee).toFixed(2)} • ${escapeHtml(e.hoursPerMonth)} jam/bulan</p>
+          <p class="font-semibold text-slate-100">${escapeHtml(e.subject)} <span class="text-xs text-slate-400">(${escapeHtml(e.enrollmentID)})</span></p>
+          <p class="text-sm text-slate-300">${escapeHtml(e.studentID)} • RM ${Number(e.monthlyFee).toFixed(2)} • ${escapeHtml(e.hoursPerMonth)} jam/bulan</p>
         </div>
       </div>
-      <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(e.status)}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(e.status)}</span>
+        <button onclick="editEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Edit</button>
+        <button onclick="removeEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-500 transition">Buang</button>
+      </div>
     `;
     container.appendChild(div);
   });
