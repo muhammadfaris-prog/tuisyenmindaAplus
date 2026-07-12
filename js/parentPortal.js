@@ -2,34 +2,57 @@ async function lookupStudent() {
   const ic = document.getElementById('parent-ic').value.trim();
   if (!ic) return alert('Sila masukkan nombor IC.');
 
-  const data = await getStudentByIC(ic);
-  if (data.error) return alert(data.error);
-  if (!data.studentID) return alert('Pelajar tidak dijumpai.');
+  const resp = await listStudentsByIC(ic);
+  if (resp.error) return alert(resp.error);
+  const students = resp.students || [];
 
+  if (!students.length) { return alert('Pelajar tidak dijumpai.'); }
+
+  if (students.length === 1) {
+    showStudentDetail(students[0]);
+  } else {
+    showStudentSelector(students);
+  }
+}
+
+function showStudentSelector(students) {
+  document.getElementById('student-info').classList.remove('hidden');
+  var esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  var opts = students.map(function(s) {
+    return '<option value=\"' + s.studentID + '\">' + esc(s.studentName) + ' (' + esc(s.schoolLevel) + ')</option>';
+  }).join('');
+  document.getElementById('student-info').innerHTML = '<div class=\"bg-slate-700/50 rounded-xl p-4 mb-4\"><p class=\"text-sm text-slate-400 mb-2\">' + students.length + ' pelajar dijumpai. Pilih nama:</p><select id=\"student-selector\" onchange=\"onStudentSelect()\" class=\"border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400\"><option value=\"\">-- Pilih Pelajar --</option>' + opts + '</select></div>';
+  window._multiStudents = students;
+}
+
+function onStudentSelect() {
+  var sid = document.getElementById('student-selector').value;
+  if (!sid || !window._multiStudents) return;
+  var s = window._multiStudents.find(function(st) { return st.studentID === sid; });
+  if (s) showStudentDetail(s);
+}
+
+function showStudentDetail(data) {
   state.student = data;
   document.getElementById('student-info').classList.remove('hidden');
   document.getElementById('info-name').textContent = data.studentName;
   document.getElementById('info-phone').textContent = data.parentPhone || '-';
   document.getElementById('info-level').textContent = data.schoolLevel;
-  // Show enrollment breakdown with fees
-  const esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
-  let subjHtml = '';
+  var esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  var subjHtml = '';
   if (data.enrollments && data.enrollments.length) {
-    subjHtml = data.enrollments.map(e => '<span class=\"inline-block bg-slate-700 px-2 py-1 rounded text-xs mr-1 mb-1\">' + esc(e.subject) + ' <b class=\"text-amber-400\">RM' + Number(e.monthlyFee).toFixed(0) + '</b></span>').join('');
+    subjHtml = data.enrollments.map(function(e) { return '<span class=\"inline-block bg-slate-700 px-2 py-1 rounded text-xs mr-1 mb-1\">' + esc(e.subject) + ' <b class=\"text-amber-400\">RM' + Number(e.monthlyFee).toFixed(0) + '</b></span>'; }).join('');
   } else {
     subjHtml = '<span class=\"text-slate-500\">-</span>';
   }
   document.getElementById('info-subjects').innerHTML = subjHtml;
-  // Use stored monthlyFee from package; fallback to calculated total
-  const displayFee = Number(data.monthlyFee || data.monthlyTotal || 0);
+  var displayFee = Number(data.monthlyFee || data.monthlyTotal || 0);
   document.getElementById('info-fee').textContent = displayFee.toFixed(2);
   document.getElementById('info-reg').textContent = Number(data.registrationFee || 0).toFixed(2);
 
-  // Default month = current month
-  const now = new Date();
-  document.getElementById('payment-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  var now = new Date();
+  document.getElementById('payment-month').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 
-  // Hide QR/receipt sections when a new student is looked up
   document.getElementById('qr-section').classList.add('hidden');
   document.getElementById('receipt-section').classList.add('hidden');
 }

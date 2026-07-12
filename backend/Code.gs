@@ -124,6 +124,36 @@ function doGet(e) {
     });
   }
 
+  if (action === 'listByIC') {
+    const ic = e.parameter.ic;
+    if (!ic) return jsonResponse({ error: 'IC is required' }, 400);
+    const sheet = getSheet(SHEET_NAME_STUDENTS);
+    const data = sheet.getDataRange().getValues();
+    const out = [];
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]).trim() === String(ic).trim() && data[i][8] === 'Active') {
+        const sid = String(data[i][0]);
+        const feeInfo = calculateMonthlyFee(sid);
+        out.push({
+          studentID: sid,
+          parentIC: data[i][1],
+          parentName: data[i][2],
+          parentPhone: data[i][3],
+          studentName: data[i][4],
+          schoolLevel: data[i][5],
+          registrationFee: data[i][6],
+          status: data[i][8],
+          startMonth: data[i][9] || '',
+          monthlyFee: data[i][10] || feeInfo.total,
+          monthlyTotal: feeInfo.total,
+          subjects: feeInfo.subjects,
+          enrollments: feeInfo.enrollments
+        });
+      }
+    }
+    return jsonResponse({ success: true, students: out });
+  }
+
   return jsonResponse({ error: 'Unknown action' }, 400);
 }
 

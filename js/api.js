@@ -32,6 +32,10 @@ async function getStudentByIC(ic) {
   return gasGet({ action: 'getStudent', ic });
 }
 
+async function listStudentsByIC(ic) {
+  return gasGet({ action: 'listByIC', ic });
+}
+
 async function createBill(parentIC, monthYear, amount, email) {
   return gasPost({ action: 'createBill', parentIC, monthYear, amount, email });
 }
