@@ -146,11 +146,13 @@ async function submitStudent() {
     alert('Ralat: ' + res.error);
     return;
   }
-  // Auto-create enrollments from selected package + calculate monthlyFee
+  // Delete old enrollments + create new ones from selected package
   const pkgSel = document.getElementById('a-package');
   const pkgOpt = pkgSel ? pkgSel.selectedOptions[0] : null;
   let monthlyFee = 0;
   if (pkgOpt && pkgOpt.dataset.subjects) {
+    // Delete existing enrollments for this student first
+    await deleteEnrollmentsByStudent(res.studentID);
     const subjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
     const monthly = Number(pkgOpt.dataset.monthly);
     const note = pkgOpt.dataset.note || '';
@@ -164,7 +166,6 @@ async function submitStudent() {
       monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
       await addEnrollment({ studentID: res.studentID, subject: subjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
     }
-    // Update student record with the calculated monthlyFee
     await updateStudent(res.studentID, { monthlyFee: monthlyFee });
   }
   alert(res.success ? `Pelajar disimpan: ${res.studentID}. Yuran bulanan: RM${monthlyFee}.` : res.error);
@@ -436,10 +437,9 @@ async function saveEditEnrollment(enrollmentID) {
 }
 
 async function removeEnrollment(enrollmentID) {
-  if (!confirm('Buang subjek ini? Status akan ditukar ke Dropped.')) return;
-  const res = await updateEnrollment(enrollmentID, { status: 'Dropped' });
+  if (!confirm('PADAM terus subjek ini?')) return;
+  const res = await deleteEnrollment(enrollmentID);
   if (res.error) { alert('Ralat: ' + res.error); return; }
-  alert('Subjek dibuang.');
   loadAdminData();
 }
 
@@ -458,30 +458,54 @@ async function loadEnrollmentsList() {
 
 function renderEnrollments(enrollments) {
   const container = document.getElementById('enrollments-list');
-  if (!enrollments.length) {
-    container.innerHTML = '<p class="text-sm text-slate-400">Tiada subjek.</p>';
+  // Filter out Dropped
+  const active = enrollments.filter(e => e.status !== 'Dropped');
+  if (!active.length) {
+    container.innerHTML = '<p class="text-sm text-slate-400">Tiada subjek aktif.</p>';
     return;
   }
+  // Group by studentID
+  const grouped = {};
+  active.forEach(e => {
+    if (!grouped[e.studentID]) grouped[e.studentID] = { id: e.studentID, subs: [], totalFee: 0 };
+    grouped[e.studentID].subs.push(e);
+    grouped[e.studentID].totalFee += Number(e.monthlyFee || 0);
+  });
+  const groups = Object.values(grouped);
+
   container.innerHTML = '';
-  enrollments.forEach((e, idx) => {
+  groups.forEach((g, idx) => {
+    const subjTags = g.subs.map(e => '<span class="inline-block bg-slate-600 px-2 py-1 rounded text-xs mr-1 mb-1">' + escapeHtml(e.subject) + ' <b class="text-amber-400">RM' + Number(e.monthlyFee).toFixed(0) + '</b></span>').join('');
     const div = document.createElement('div');
-    div.className = 'border border-slate-600 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-slate-700/50';
+    div.className = 'border border-slate-600 rounded-xl p-4 bg-slate-700/50';
     div.innerHTML = `
-      <div class="flex items-start gap-3">
-        <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
-        <div>
-          <p class="font-semibold text-slate-100">${escapeHtml(e.subject)} <span class="text-xs text-slate-400">(${escapeHtml(e.enrollmentID)})</span></p>
-          <p class="text-sm text-slate-300">${escapeHtml(e.studentID)} • RM ${Number(e.monthlyFee).toFixed(2)} • ${escapeHtml(e.hoursPerMonth)} jam/bulan</p>
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0">${idx + 1}</span>
+          <span class="font-semibold text-slate-100">${escapeHtml(g.id)}</span>
+          <span class="text-sm text-amber-400 font-medium">RM${g.totalFee.toFixed(0)}/bulan</span>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : e.status === 'Dropped' ? 'bg-red-500/20 text-red-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(e.status)}</span>
-        <button onclick="editEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Edit</button>
-        <button onclick="removeEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-500 transition">Buang</button>
+      <div class="flex flex-wrap ml-8">${subjTags}</div>
+      <div class="flex gap-2 mt-2 ml-8">
+        <button onclick="editStudentEnrollments('${escapeHtml(g.id)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Tukar Subjek</button>
+        <button onclick="deleteAllEnrollments('${escapeHtml(g.id)}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-500 transition">Buang Semua</button>
       </div>
     `;
     container.appendChild(div);
   });
+}
+
+function editStudentEnrollments(studentID) {
+  if (!confirm('Tukar subjek untuk ' + studentID + '? Ini akan buang subjek lama. Sila daftar semula pelajar dengan pakej baru.')) return;
+  setAdminTab('students');
+}
+
+async function deleteAllEnrollments(studentID) {
+  if (!confirm('PADAM semua subjek untuk ' + studentID + '?')) return;
+  const res = await deleteEnrollmentsByStudent(studentID);
+  if (res.error) { alert('Ralat: ' + res.error); return; }
+  loadAdminData();
 }
 
 // --- Payment Tracker ---

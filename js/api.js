@@ -92,3 +92,11 @@ async function deleteStudent(studentID) {
 async function updateEnrollment(enrollmentID, updates) {
   return gasPost({ action: 'updateEnrollment', enrollmentID, ...updates });
 }
+
+async function deleteEnrollment(enrollmentID) {
+  return gasPost({ action: 'deleteEnrollment', enrollmentID });
+}
+
+async function deleteEnrollmentsByStudent(studentID) {
+  return gasPost({ action: 'deleteEnrollmentsByStudent', studentID });
+}

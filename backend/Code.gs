@@ -222,6 +222,16 @@ function doPost(e) {
       return handleDeleteStudent(params);
     }
 
+    // 13. ADMIN: DELETE ENROLLMENT (hard delete)
+    if (action === 'deleteEnrollment') {
+      return handleDeleteEnrollment(params);
+    }
+
+    // 14. ADMIN: DELETE ALL ENROLLMENTS FOR STUDENT
+    if (action === 'deleteEnrollmentsByStudent') {
+      return handleDeleteEnrollmentsByStudent(params);
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400);
   } catch (err) {
     return jsonResponse({ error: err.toString() }, 500);
@@ -477,6 +487,34 @@ function handleUpdateEnrollment(params) {
     }
   }
   return jsonResponse({ error: 'Enrollment not found' }, 404);
+}
+
+function handleDeleteEnrollment(params) {
+  const sheet = getSheet(SHEET_NAME_ENROLLMENTS);
+  const data = sheet.getDataRange().getValues();
+  const enrollmentID = params.enrollmentID;
+  if (!enrollmentID) return jsonResponse({ error: 'enrollmentID is required' }, 400);
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(enrollmentID).trim()) {
+      sheet.deleteRow(i + 1);
+      return jsonResponse({ success: true });
+    }
+  }
+  return jsonResponse({ error: 'Enrollment not found' }, 404);
+}
+
+function handleDeleteEnrollmentsByStudent(params) {
+  const sheet = getSheet(SHEET_NAME_ENROLLMENTS);
+  const data = sheet.getDataRange().getValues();
+  const studentID = params.studentID;
+  if (!studentID) return jsonResponse({ error: 'studentID is required' }, 400);
+  // Delete from bottom to top to avoid index shifts
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][1]).trim() === String(studentID).trim()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+  return jsonResponse({ success: true });
 }
 
 function handleListStudents(params) {
