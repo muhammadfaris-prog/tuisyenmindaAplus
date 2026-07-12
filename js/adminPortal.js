@@ -86,8 +86,8 @@ function renderPackagesEditor() {
       <td class="px-4 py-3 text-slate-300">${escapeHtml(pkg.subjects)}</td>
       <td class="px-4 py-3 text-slate-300">${escapeHtml(pkg.hours)}</td>
       <td class="px-4 py-3 text-slate-300">${escapeHtml(pkg.classSize)}</td>
-      <td class="px-4 py-3 text-slate-300">RM ${Number(pkg.registration).toFixed(2)}</td>
-      <td class="px-4 py-3 text-slate-300">${pkg.monthly ? 'RM ' + Number(pkg.monthly).toFixed(2) : '-'}<br><span class="text-xs text-amber-400">${escapeHtml(pkg.note)}</span></td>
+      <td class="px-4 py-3 text-slate-300"><span class="text-xs text-slate-500">Yuran Pendaftaran:</span><br>RM ${Number(pkg.registration).toFixed(2)}</td>
+      <td class="px-4 py-3 text-slate-300"><span class="text-xs text-slate-500">Yuran Bulanan:</span><br>${pkg.monthly ? 'RM ' + Number(pkg.monthly).toFixed(2) : '-'}<br><span class="text-xs text-amber-400">${escapeHtml(pkg.note)}</span></td>
     `;
     preview.appendChild(tr);
   });
@@ -122,10 +122,13 @@ async function submitStudent() {
     alert('Ralat: ' + res.error);
     return;
   }
-  alert(res.success ? `Pelajar disimpan: ${res.studentID}` : res.error);
+  alert(res.success ? `Pelajar disimpan: ${res.studentID}. Sila tambah subjek di tab Subjek.` : res.error);
   if (res.success) {
     clearStudentForm();
     loadAdminData();
+    // Auto-switch to Subjek tab and pre-fill studentID
+    setAdminTab('enrollments');
+    document.getElementById('a-studentID').value = res.studentID;
   }
 }
 
