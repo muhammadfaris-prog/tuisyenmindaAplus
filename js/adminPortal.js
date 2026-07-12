@@ -449,9 +449,23 @@ function renderPaymentTracker(filterMonth) {
 
 function formatMonthYear(ym) {
   if (!ym) return '';
-  const parts = String(ym).split('-');
-  const monthNames = ['', 'Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
-  return monthNames[parseInt(parts[1])] + ' ' + parts[0];
+  var str = String(ym);
+  // Handle full Date strings from Google Sheets (e.g. "Thu Oct 01 2026 00:00:00 GMT+0800")
+  if (str.indexOf('GMT') !== -1 || str.indexOf('00:00:00') !== -1) {
+    var d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      var mn = ['', 'Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
+      return mn[d.getMonth() + 1] + ' ' + d.getFullYear();
+    }
+  }
+  // Standard "YYYY-MM" format
+  var parts = str.split('-');
+  if (parts.length === 2) {
+    var monthNames = ['', 'Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
+    var m = parseInt(parts[1]);
+    if (m >= 1 && m <= 12) return monthNames[m] + ' ' + parts[0];
+  }
+  return str;
 }
 
 function filterPaymentTracker() {
@@ -518,5 +532,7 @@ async function approve(paymentID, status) {
   const notes = prompt('Nota admin (optional):') || '';
   const res = await updateReceiptStatus(paymentID, status, notes);
   alert(res.success ? 'Status dikemaskini.' : res.error);
+  // Clear cache so payment tracker + receipt list reload fresh
+  paymentSummaryData = null;
   loadAdminData();
 }

@@ -476,17 +476,33 @@ function handlePaymentSummary(params) {
   const studentData = studentsSheet.getDataRange().getValues();
   const paymentData = paymentsSheet.getDataRange().getValues();
 
+  // Helper: normalize monthYear to "YYYY-MM" (Google Sheets may auto-convert to Date objects)
+  function normMonth(val) {
+    if (!val) return '';
+    if (val instanceof Date) {
+      return val.getFullYear() + '-' + String(val.getMonth() + 1).padStart(2, '0');
+    }
+    var s = String(val).trim();
+    if (s.indexOf('GMT') !== -1 || s.indexOf('00:00:00') !== -1) {
+      var d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      }
+    }
+    return s;
+  }
+
   // Collect active students
   const students = [];
   for (let i = 1; i < studentData.length; i++) {
     if (studentData[i][8] === 'Active') {
       students.push({
         studentID: String(studentData[i][0]),
-        studentName: studentData[i][4],
-        schoolLevel: studentData[i][5],
-        parentIC: String(studentData[i][1]),
-        parentName: studentData[i][2],
-        parentPhone: studentData[i][3],
+        studentName: studentData[i][4] || '',
+        schoolLevel: studentData[i][5] || '',
+        parentIC: String(studentData[i][1] || ''),
+        parentName: studentData[i][2] || '',
+        parentPhone: studentData[i][3] || '',
         registrationFee: studentData[i][6] || 0
       });
     }
@@ -497,7 +513,7 @@ function handlePaymentSummary(params) {
   const allMonths = new Set();
   for (let i = 1; i < paymentData.length; i++) {
     const sid = String(paymentData[i][1] || '');
-    const month = String(paymentData[i][3] || '').trim();
+    const month = normMonth(paymentData[i][3]);
     if (!month) continue;
     allMonths.add(month);
     const key = sid + '|' + month;
