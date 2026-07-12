@@ -216,7 +216,10 @@
           <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8 mb-6 card">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-xl font-bold text-emerald-800">Pakej & Harga</h3>
-              <button onclick="resetPackages()" class="text-sm text-slate-500 hover:text-emerald-700 underline">Tetapkan Semula ke Default</button>
+              <div class="flex gap-2">
+                <button onclick="addBlankPackage()" class="text-sm bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-200 transition font-medium">+ Tambah Pakej</button>
+                <button onclick="resetPackages()" class="text-sm text-slate-500 hover:text-emerald-700 underline">Tetapkan Semula ke Default</button>
+              </div>
             </div>
             <p class="text-slate-500 text-sm mb-4">Ubah harga pakej di sini. Perubahan akan disimpan dalam penyemak imbas ini dan digunakan untuk paparan yuran.</p>
             <div id="packages-editor" class="space-y-4"></div>

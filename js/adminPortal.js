@@ -38,6 +38,11 @@ function savePackages() {
   alert('Pakej berjaya disimpan.');
 }
 
+function addBlankPackage() {
+  currentPackages.push({ level: '', subjects: '', hours: '', classSize: '', registration: 0, monthly: 0, note: '' });
+  renderPackagesEditor();
+}
+
 function resetPackages() {
   if (!confirm('Tetapkan semula pakej ke default dari PDF?')) return;
   currentPackages = JSON.parse(JSON.stringify(DEFAULT_PACKAGES));
@@ -184,10 +189,99 @@ function renderStudents(students) {
         <p class="font-semibold text-slate-800">${escapeHtml(s.studentName)} <span class="text-xs font-normal text-slate-500">(${escapeHtml(s.studentID)})</span></p>
         <p class="text-sm text-slate-600">${escapeHtml(s.schoolLevel)} • ${escapeHtml(s.parentName)} • ${escapeHtml(s.parentPhone)} • IC: ${escapeHtml(String(s.parentIC))}</p>
       </div>
-      <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${escapeHtml(s.status)}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">${escapeHtml(s.status)}</span>
+        <button onclick="editStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-lg hover:bg-amber-200 transition font-medium">✏️ Edit</button>
+      </div>
     `;
     container.appendChild(div);
   });
+}
+
+// --- Edit Student Modal ---
+function editStudent(studentID) {
+  const s = allStudents.find(st => st.studentID === studentID);
+  if (!s) return;
+
+  // Check if modal already exists
+  let modal = document.getElementById('edit-student-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'edit-student-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/40';
+    modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 fade-in max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-emerald-800">Edit Pelajar</h3>
+        <button onclick="document.getElementById('edit-student-modal').remove()" class="text-slate-400 hover:text-red-500 text-xl">&times;</button>
+      </div>
+      <p class="text-sm text-slate-500 mb-4">Student ID: <strong>${escapeHtml(s.studentID)}</strong></p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-slate-500">IC Ibu Bapa</label>
+          <input id="edit-parentIC" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500" value="${escapeHtml(String(s.parentIC))}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Nama Ibu Bapa</label>
+          <input id="edit-parentName" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500" value="${escapeHtml(s.parentName)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">No. Telefon</label>
+          <input id="edit-parentPhone" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500" value="${escapeHtml(s.parentPhone)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Nama Pelajar</label>
+          <input id="edit-studentName" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500" value="${escapeHtml(s.studentName)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Tahap</label>
+          <select id="edit-schoolLevel" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">Pilih Tahap</option>
+            ${['Darjah 1 & 2','Darjah 3, 4, 5 & 6','UPKK','Tingkatan 1, 2, 3 & 4','Tingkatan 5','Kelas Membaca','Personal Class (1 to 1)'].map(lv => `<option ${lv === s.schoolLevel ? 'selected' : ''}>${lv}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Yuran Pendaftaran (RM)</label>
+          <input id="edit-regFee" type="number" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500" value="${Number(s.registrationFee||0)}" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Status</label>
+          <select id="edit-status" class="border border-slate-200 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="Active" ${s.status === 'Active' ? 'selected' : ''}>Aktif</option>
+            <option value="Inactive" ${s.status === 'Inactive' ? 'selected' : ''}>Tidak Aktif</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button onclick="saveEditStudent('${escapeHtml(s.studentID)}')" class="flex-1 bg-emerald-700 text-white py-2.5 rounded-xl font-medium hover:bg-emerald-600 transition">Simpan</button>
+        <button onclick="document.getElementById('edit-student-modal').remove()" class="flex-1 bg-slate-200 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-300 transition">Batal</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveEditStudent(studentID) {
+  const updates = {
+    parentIC: document.getElementById('edit-parentIC').value,
+    parentName: document.getElementById('edit-parentName').value,
+    parentPhone: document.getElementById('edit-parentPhone').value,
+    studentName: document.getElementById('edit-studentName').value,
+    schoolLevel: document.getElementById('edit-schoolLevel').value,
+    registrationFee: document.getElementById('edit-regFee').value,
+    status: document.getElementById('edit-status').value
+  };
+  const res = await updateStudent(studentID, updates);
+  if (res.error) {
+    alert('Ralat: ' + res.error);
+    return;
+  }
+  alert('Pelajar dikemaskini.');
+  document.getElementById('edit-student-modal').remove();
+  loadAdminData();
 }
 
 function filterEnrollments() {

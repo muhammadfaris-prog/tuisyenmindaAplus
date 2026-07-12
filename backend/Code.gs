@@ -170,6 +170,11 @@ function doPost(e) {
       return handleUpdateReceiptStatus(params);
     }
 
+    // 9. ADMIN: UPDATE STUDENT
+    if (action === 'updateStudent') {
+      return handleUpdateStudent(params);
+    }
+
     return jsonResponse({ error: 'Unknown action' }, 400);
   } catch (err) {
     return jsonResponse({ error: err.toString() }, 500);
@@ -247,6 +252,21 @@ function handleCreateBill(params) {
   });
 }
 
+function getOrCreateReceiptFolder() {
+  const configuredId = getConfig('DRIVE_FOLDER_ID');
+  if (configuredId) {
+    try {
+      return DriveApp.getFolderById(configuredId);
+    } catch (e) {
+      // configured ID is invalid — fall through
+    }
+  }
+  // Fallback: use/create 'Zool Receipts' folder in user's Drive
+  const folders = DriveApp.getFoldersByName('Zool Receipts');
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder('Zool Receipts');
+}
+
 function handleUploadReceipt(params) {
   const ic = params.parentIC;
   const monthYear = params.monthYear;
@@ -259,9 +279,9 @@ function handleUploadReceipt(params) {
     return jsonResponse({ error: 'Missing required fields' }, 400);
   }
 
-  // Decode and save to Drive
+  // Decode and save to Drive (with fallback folder)
   const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
-  const folder = DriveApp.getFolderById(getConfig('DRIVE_FOLDER_ID'));
+  const folder = getOrCreateReceiptFolder();
   const file = folder.createFile(blob);
   const fileUrl = file.getUrl();
 
@@ -325,6 +345,29 @@ function handleAddStudent(params) {
   ]);
 
   return jsonResponse({ success: true, studentID: studentID });
+}
+
+function handleUpdateStudent(params) {
+  const sheet = getSheet(SHEET_NAME_STUDENTS);
+  const data = sheet.getDataRange().getValues();
+  const studentID = params.studentID;
+  if (!studentID) return jsonResponse({ error: 'studentID is required' }, 400);
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(studentID).trim()) {
+      const row = i + 1;
+      // Update fields that are provided (non-empty)
+      if (params.parentIC !== undefined)       sheet.getRange(row, 2).setValue(params.parentIC);
+      if (params.parentName !== undefined)     sheet.getRange(row, 3).setValue(params.parentName);
+      if (params.parentPhone !== undefined)    sheet.getRange(row, 4).setValue(params.parentPhone);
+      if (params.studentName !== undefined)    sheet.getRange(row, 5).setValue(params.studentName);
+      if (params.schoolLevel !== undefined)    sheet.getRange(row, 6).setValue(params.schoolLevel);
+      if (params.registrationFee !== undefined) sheet.getRange(row, 7).setValue(params.registrationFee);
+      if (params.status !== undefined)         sheet.getRange(row, 9).setValue(params.status);
+      return jsonResponse({ success: true, studentID: studentID });
+    }
+  }
+  return jsonResponse({ error: 'Student not found' }, 404);
 }
 
 function handleAddEnrollment(params) {

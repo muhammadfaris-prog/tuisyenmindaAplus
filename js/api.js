@@ -71,3 +71,7 @@ async function listPendingReceipts() {
 async function updateReceiptStatus(paymentID, status, notes) {
   return gasPost({ action: 'updateReceiptStatus', paymentID, status, notes });
 }
+
+async function updateStudent(studentID, updates) {
+  return gasPost({ action: 'updateStudent', studentID, ...updates });
+}
