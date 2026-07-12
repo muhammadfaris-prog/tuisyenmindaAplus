@@ -16,15 +16,15 @@ function navigate(page) {
 function render() {
   document.getElementById('parent-portal').classList.add('hidden');
   document.getElementById('admin-portal').classList.add('hidden');
-  document.getElementById('nav-parent').classList.remove('bg-white', 'text-emerald-700');
-  document.getElementById('nav-admin').classList.remove('bg-white', 'text-emerald-700');
+  document.getElementById('nav-parent').classList.remove('bg-white', 'text-amber-500');
+  document.getElementById('nav-admin').classList.remove('bg-white', 'text-amber-500');
 
   if (state.page === 'parent') {
     document.getElementById('parent-portal').classList.remove('hidden');
-    document.getElementById('nav-parent').classList.add('bg-white', 'text-emerald-700');
+    document.getElementById('nav-parent').classList.add('bg-white', 'text-amber-500');
   } else if (state.page === 'admin') {
     document.getElementById('admin-portal').classList.remove('hidden');
-    document.getElementById('nav-admin').classList.add('bg-white', 'text-emerald-700');
+    document.getElementById('nav-admin').classList.add('bg-white', 'text-amber-500');
     renderAdmin();
   }
 }
@@ -67,15 +67,15 @@ function setAdminTab(tab) {
   state.adminTab = tab;
   document.querySelectorAll('.admin-panel').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(el => {
-    el.classList.remove('bg-emerald-700', 'text-white');
-    el.classList.add('bg-slate-100', 'text-slate-700');
+    el.classList.remove('bg-blue-950', 'text-white');
+    el.classList.add('bg-slate-700', 'text-slate-700');
   });
   const panel = document.getElementById('admin-' + tab);
   const tabBtn = document.getElementById('tab-' + tab);
   if (panel) panel.classList.remove('hidden');
   if (tabBtn) {
-    tabBtn.classList.remove('bg-slate-100', 'text-slate-700');
-    tabBtn.classList.add('bg-emerald-700', 'text-white');
+    tabBtn.classList.remove('bg-slate-700', 'text-slate-300');
+    tabBtn.classList.add('bg-blue-950', 'text-amber-400');
   }
   if (tab === 'packages') renderPackagesEditor();
   if (tab === 'payments') loadPaymentTracker();
