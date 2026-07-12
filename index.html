@@ -14,19 +14,22 @@
     @keyframes fadeIn { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform: translateY(0);} }
     .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+    /* Ensure inputs are readable on dark backgrounds */
+    input, select, textarea { color: #f1f5f9 !important; background-color: #1e293b !important; }
+    input::placeholder, textarea::placeholder { color: #94a3b8 !important; }
   </style>
 </head>
   <body class="bg-gradient-to-br from-slate-950 to-blue-950 text-slate-100 min-h-screen">
   <nav class="bg-blue-950 text-amber-400 shadow-lg sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-amber-400/20 rounded-full flex items-center justify-center font-bold text-lg text-amber-300">M</div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">Pusat Tuisyen Minda A+</h1>
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 bg-amber-400/20 rounded-full flex items-center justify-center font-bold text-lg text-amber-300 shrink-0">M</div>
+        <div class="min-w-0">
+          <h1 class="font-bold text-base md:text-lg leading-tight truncate">Pusat Tuisyen Minda A+</h1>
           <p class="text-xs text-blue-200">Sistem Pengurusan Yuran</p>
         </div>
       </div>
-      <div class="space-x-2">
+      <div class="space-x-1 md:space-x-2 flex-shrink-0">
         <button onclick="navigate('parent')" id="nav-parent" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-900 transition">Ibu Bapa</button>
         <button onclick="navigate('admin')" id="nav-admin" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-900 transition">Admin</button>
       </div>

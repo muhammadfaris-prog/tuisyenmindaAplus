@@ -72,10 +72,19 @@ async function submitReceipt() {
   if (!monthYear) return alert('Sila pilih BULAN bayaran sebelum hantar resit.');
 
   const amountInput = document.getElementById('receipt-amount');
-  const amountPaid = parseFloat(amountInput.value);
-  if (!amountInput.value || isNaN(amountPaid) || amountPaid <= 0) {
+  const amountPaid = parseFloat(amountInput ? amountInput.value : 0);
+  if (amountInput && (!amountInput.value || isNaN(amountPaid) || amountPaid <= 0)) {
     return alert('Sila masukkan amaun yang dibayar (RM).');
   }
+
+  // Show loading state
+  const btn = document.querySelector('#receipt-section .bg-blue-950');
+  const msg = document.getElementById('receipt-msg');
+  if (btn) {
+    btn.textContent = '⏳ Sedang memuat naik...';
+    btn.disabled = true;
+  }
+  if (msg) { msg.textContent = 'Memuat naik resit...'; msg.className = 'mt-3 text-sm font-medium text-amber-400'; }
 
   const file = fileInput.files[0];
   const reader = new FileReader();
@@ -88,16 +97,19 @@ async function submitReceipt() {
       file.name,
       file.type,
       state.pendingBill || '',
-      amountPaid
+      amountPaid || 0
     );
-    const msg = document.getElementById('receipt-msg');
     if (res.success) {
-      msg.textContent = 'Resit berjaya dihantar. Terima kasih!';
-      msg.className = 'mt-3 text-sm font-medium text-emerald-400';
-      amountInput.value = '';
+      if (msg) { msg.textContent = 'Resit berjaya dihantar. Terima kasih!'; msg.className = 'mt-3 text-sm font-medium text-emerald-400'; }
+      if (amountInput) amountInput.value = '';
       fileInput.value = '';
     } else {
-      msg.textContent = 'Ralat: ' + res.error;
+      if (msg) { msg.textContent = 'Ralat: ' + res.error; msg.className = 'mt-3 text-sm font-medium text-red-400'; }
+    }
+    if (btn) {
+      btn.textContent = 'Hantar Resit';
+      btn.disabled = false;
+    }
       msg.className = 'mt-3 text-sm font-medium text-red-400';
     }
   };

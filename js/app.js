@@ -67,8 +67,8 @@ function setAdminTab(tab) {
   state.adminTab = tab;
   document.querySelectorAll('.admin-panel').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.admin-tab').forEach(el => {
-    el.classList.remove('bg-blue-950', 'text-white');
-    el.classList.add('bg-slate-700', 'text-slate-700');
+    el.classList.remove('bg-blue-950', 'text-amber-400');
+    el.classList.add('bg-white', 'text-slate-800', 'border', 'border-slate-300');
   });
   const panel = document.getElementById('admin-' + tab);
   const tabBtn = document.getElementById('tab-' + tab);
