@@ -74,7 +74,7 @@ function setAdminTab(tab) {
   const tabBtn = document.getElementById('tab-' + tab);
   if (panel) panel.classList.remove('hidden');
   if (tabBtn) {
-    tabBtn.classList.remove('bg-slate-700', 'text-slate-300');
+    tabBtn.classList.remove('bg-white', 'text-slate-800', 'border', 'border-slate-300', 'hover:bg-slate-100');
     tabBtn.classList.add('bg-blue-950', 'text-amber-400');
   }
   if (tab === 'packages') renderPackagesEditor();

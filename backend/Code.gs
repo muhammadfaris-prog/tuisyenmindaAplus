@@ -312,10 +312,13 @@ function handleUploadReceipt(params) {
   }
 
   if (!updated) {
+    // Look up studentID from parentIC so payment tracker can associate the payment
+    const student = findRowByIC(ic);
+    const sid = student ? student.record[0] : '';
     const nextRow = payments.getLastRow() + 1;
     payments.appendRow([
       generateID('PAY', nextRow),
-      '',
+      sid,
       ic,
       monthYear,
       0,
