@@ -81,6 +81,10 @@ async function getPaymentSummary() {
   return gasPost({ action: 'paymentSummary' });
 }
 
+async function deleteStudent(studentID) {
+  return gasPost({ action: 'deleteStudent', studentID });
+}
+
 async function updateEnrollment(enrollmentID, updates) {
   return gasPost({ action: 'updateEnrollment', enrollmentID, ...updates });
 }

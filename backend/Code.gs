@@ -19,7 +19,7 @@ function getSheet(name) {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const headers = {
-    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status', 'startMonth'],
+    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status', 'startMonth', 'monthlyFee'],
     'Enrollments': ['enrollmentID', 'studentID', 'subject', 'monthlyFee', 'hoursPerMonth', 'createdAt', 'status'],
     'Payments': ['paymentID', 'studentID', 'parentIC', 'monthYear', 'amountDue', 'amountPaid', 'paymentMethod', 'gatewayBillID', 'gatewayStatus', 'receiptURL', 'receiptFileName', 'adminApproval', 'adminNotes', 'createdAt', 'paidAt']
   };
@@ -117,6 +117,7 @@ function doGet(e) {
       registrationFee: r[6],
       status: r[8],
       startMonth: r[9] || '',
+      monthlyFee: r[10] || feeInfo.total,
       monthlyTotal: feeInfo.total,
       subjects: feeInfo.subjects,
       enrollments: feeInfo.enrollments
@@ -184,6 +185,11 @@ function doPost(e) {
     // 11. ADMIN: UPDATE ENROLLMENT
     if (action === 'updateEnrollment') {
       return handleUpdateEnrollment(params);
+    }
+
+    // 12. ADMIN: DELETE STUDENT (hard delete)
+    if (action === 'deleteStudent') {
+      return handleDeleteStudent(params);
     }
 
     return jsonResponse({ error: 'Unknown action' }, 400);
@@ -349,6 +355,7 @@ function handleAddStudent(params) {
   const studentID = generateID('STU', nextRow);
   const now = new Date();
   const startMonth = params.startMonth || (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
+  const monthlyFee = Number(params.monthlyFee || 0);
 
   sheet.appendRow([
     studentID,
@@ -360,10 +367,25 @@ function handleAddStudent(params) {
     params.registrationFee || 0,
     now.toISOString(),
     'Active',
-    startMonth
+    startMonth,
+    monthlyFee
   ]);
 
   return jsonResponse({ success: true, studentID: studentID });
+}
+
+function handleDeleteStudent(params) {
+  const sheet = getSheet(SHEET_NAME_STUDENTS);
+  const data = sheet.getDataRange().getValues();
+  const studentID = params.studentID;
+  if (!studentID) return jsonResponse({ error: 'studentID is required' }, 400);
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(studentID).trim()) {
+      sheet.deleteRow(i + 1);
+      return jsonResponse({ success: true });
+    }
+  }
+  return jsonResponse({ error: 'Student not found' }, 404);
 }
 
 function handleUpdateStudent(params) {
@@ -441,7 +463,8 @@ function handleListStudents(params) {
       schoolLevel: data[i][5],
       registrationFee: data[i][6],
       status: data[i][8],
-      startMonth: data[i][9] || ''
+      startMonth: data[i][9] || '',
+      monthlyFee: data[i][10] || 0
     });
   }
   return jsonResponse({ success: true, students: out });

@@ -20,7 +20,9 @@ async function lookupStudent() {
     subjHtml = '<span class=\"text-slate-500\">-</span>';
   }
   document.getElementById('info-subjects').innerHTML = subjHtml;
-  document.getElementById('info-fee').textContent = data.monthlyTotal.toFixed(2);
+  // Use stored monthlyFee from package; fallback to calculated total
+  const displayFee = Number(data.monthlyFee || data.monthlyTotal || 0);
+  document.getElementById('info-fee').textContent = displayFee.toFixed(2);
   document.getElementById('info-reg').textContent = Number(data.registrationFee || 0).toFixed(2);
 
   // Default month = current month

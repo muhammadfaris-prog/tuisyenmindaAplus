@@ -146,27 +146,28 @@ async function submitStudent() {
     alert('Ralat: ' + res.error);
     return;
   }
-  // Auto-create enrollments from selected package
+  // Auto-create enrollments from selected package + calculate monthlyFee
   const pkgSel = document.getElementById('a-package');
   const pkgOpt = pkgSel ? pkgSel.selectedOptions[0] : null;
+  let monthlyFee = 0;
   if (pkgOpt && pkgOpt.dataset.subjects) {
     const subjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
     const monthly = Number(pkgOpt.dataset.monthly);
     const note = pkgOpt.dataset.note || '';
     if (monthly > 0) {
-      // Simple per-subject pricing
+      monthlyFee = subjects.length * monthly;
       for (const subj of subjects) {
         await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
       }
     } else {
-      // Tiered pricing (monthly=0): parse note for total e.g. "4: RM100"
       const totalMatch = note.match(new RegExp(subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
-      const totalFee = totalMatch ? Number(totalMatch[1]) : 0;
-      // Create one combined enrollment with total fee
-      await addEnrollment({ studentID: res.studentID, subject: subjects.join(', '), monthlyFee: totalFee, hoursPerMonth: 4 });
+      monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
+      await addEnrollment({ studentID: res.studentID, subject: subjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
     }
+    // Update student record with the calculated monthlyFee
+    await updateStudent(res.studentID, { monthlyFee: monthlyFee });
   }
-  alert(res.success ? `Pelajar disimpan: ${res.studentID}. ${pkgOpt && pkgOpt.dataset.subjects ? pkgOpt.dataset.subjects.split(',').length + ' subjek dari pakej.' : 'Sila tambah subjek di tab Subjek.'}` : res.error);
+  alert(res.success ? `Pelajar disimpan: ${res.studentID}. Yuran bulanan: RM${monthlyFee}.` : res.error);
   if (res.success) {
     clearStudentForm();
     loadAdminData();
@@ -350,10 +351,10 @@ async function saveEditStudent(studentID) {
 }
 
 async function removeStudent(studentID) {
-  if (!confirm('Buang pelajar ini? Status akan ditukar ke Inactive.')) return;
-  const res = await updateStudent(studentID, { status: 'Inactive' });
+  if (!confirm('PADAM terus pelajar ini? Tindakan ini tidak boleh undur.')) return;
+  const res = await deleteStudent(studentID);
   if (res.error) { alert('Ralat: ' + res.error); return; }
-  alert('Pelajar dibuang.');
+  alert('Pelajar dipadam.');
   loadAdminData();
 }
 
