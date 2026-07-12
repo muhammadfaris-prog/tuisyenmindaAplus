@@ -99,6 +99,30 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Populate package dropdown in registration form
+function populatePackageDropdown() {
+  const sel = document.getElementById('a-package');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Pilih Pakej --</option>';
+  loadPackages();
+  currentPackages.forEach((pkg, idx) => {
+    sel.innerHTML += `<option value="${idx}" data-level="${escapeHtml(pkg.level)}" data-reg="${pkg.registration}" data-monthly="${pkg.monthly}" data-subjects="${escapeHtml(pkg.subjects)}">${escapeHtml(pkg.level)} (RM${pkg.monthly}/subjek)</option>`;
+  });
+}
+
+// When package is selected, auto-fill school level & registration fee
+function onPackageChange() {
+  const sel = document.getElementById('a-package');
+  const opt = sel.selectedOptions[0];
+  if (!opt || !opt.value) {
+    document.getElementById('a-schoolLevel').value = '';
+    document.getElementById('a-regFee').value = '';
+    return;
+  }
+  document.getElementById('a-schoolLevel').value = opt.dataset.level || '';
+  document.getElementById('a-regFee').value = opt.dataset.reg || '0';
+}
+
 async function submitStudent() {
   const startMonthInput = document.getElementById('a-startMonth').value;
   const student = {
@@ -122,13 +146,20 @@ async function submitStudent() {
     alert('Ralat: ' + res.error);
     return;
   }
-  alert(res.success ? `Pelajar disimpan: ${res.studentID}. Sila tambah subjek di tab Subjek.` : res.error);
+  // Auto-create enrollments from selected package
+  const pkgSel = document.getElementById('a-package');
+  const pkgOpt = pkgSel ? pkgSel.selectedOptions[0] : null;
+  if (pkgOpt && pkgOpt.dataset.subjects && pkgOpt.dataset.monthly) {
+    const subjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
+    const monthlyFee = Number(pkgOpt.dataset.monthly);
+    for (const subj of subjects) {
+      await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthlyFee, hoursPerMonth: 4 });
+    }
+  }
+  alert(res.success ? `Pelajar disimpan: ${res.studentID}. ${pkgOpt && pkgOpt.dataset.subjects ? pkgOpt.dataset.subjects.split(',').length + ' subjek ditambah.' : 'Sila tambah subjek di tab Subjek.'}` : res.error);
   if (res.success) {
     clearStudentForm();
     loadAdminData();
-    // Auto-switch to Subjek tab and pre-fill studentID
-    setAdminTab('enrollments');
-    document.getElementById('a-studentID').value = res.studentID;
   }
 }
 
@@ -136,7 +167,8 @@ function clearStudentForm() {
   ['a-parentIC', 'a-parentName', 'a-parentPhone', 'a-studentName', 'a-schoolLevel', 'a-regFee', 'a-startMonth'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  // Default start month to current month
+  const pkg = document.getElementById('a-package');
+  if (pkg) pkg.value = '';
   document.getElementById('a-startMonth').value = new Date().toISOString().slice(0, 7);
 }
 

@@ -160,23 +160,28 @@
           <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 md:p-8 mb-6 card">
             <h3 class="text-xl font-bold mb-4 text-amber-400">Daftar Pelajar Baru</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input id="a-parentIC" placeholder="IC Ibu Bapa" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              <input id="a-parentName" placeholder="Nama Ibu Bapa" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              <input id="a-parentPhone" placeholder="No. Telefon" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              <input id="a-studentName" placeholder="Nama Pelajar" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              <label for="a-schoolLevel" class="sr-only">Pilih Tahap</label>
-              <select id="a-schoolLevel" title="Pilih Tahap" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                <option value="">Pilih Tahap</option>
-                <option>Darjah 1 & 2</option>
-                <option>Darjah 3, 4, 5 & 6</option>
-                <option>UPKK</option>
-                <option>Tingkatan 1, 2, 3 & 4</option>
-                <option>Tingkatan 5</option>
-                <option>Kelas Membaca</option>
-                <option>Personal Class (1 to 1)</option>
-              </select>
-              <input id="a-regFee" placeholder="Yuran Pendaftaran (RM)" type="number" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              <input id="a-startMonth" type="month" title="Bulan Mula Yuran" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input id="a-parentIC" placeholder="IC Ibu Bapa" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input id="a-parentName" placeholder="Nama Ibu Bapa" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input id="a-parentPhone" placeholder="No. Telefon" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input id="a-studentName" placeholder="Nama Pelajar" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <div>
+                <label class="text-xs text-slate-400">Pilih Pakej</label>
+                <select id="a-package" onchange="onPackageChange()" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <option value="">-- Pilih Pakej --</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Tahap (auto)</label>
+                <input id="a-schoolLevel" placeholder="Tahap" readonly class="border border-slate-600 bg-slate-600 text-slate-300 rounded-xl px-4 py-3 w-full" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Yuran Pendaftaran RM (auto)</label>
+                <input id="a-regFee" placeholder="0" type="number" readonly class="border border-slate-600 bg-slate-600 text-slate-300 rounded-xl px-4 py-3 w-full" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400">Bulan Mula Yuran</label>
+                <input id="a-startMonth" type="month" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
             </div>
             <button onclick="submitStudent()" class="mt-5 bg-blue-950 text-amber-400 px-6 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Simpan Pelajar</button>
           </div>
