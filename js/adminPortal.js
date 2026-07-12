@@ -420,7 +420,7 @@ function renderEnrollments(enrollments) {
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(e.status)}</span>
+        <span class="text-xs px-2 py-1 rounded-full ${e.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : e.status === 'Dropped' ? 'bg-red-500/20 text-red-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(e.status)}</span>
         <button onclick="editEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Edit</button>
         <button onclick="removeEnrollment('${escapeHtml(e.enrollmentID)}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-500 transition">Buang</button>
       </div>

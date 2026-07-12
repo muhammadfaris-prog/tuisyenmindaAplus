@@ -110,8 +110,6 @@ async function submitReceipt() {
       btn.textContent = 'Hantar Resit';
       btn.disabled = false;
     }
-      msg.className = 'mt-3 text-sm font-medium text-red-400';
-    }
   };
   reader.readAsDataURL(file);
 }
