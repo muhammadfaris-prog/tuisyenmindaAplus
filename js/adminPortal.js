@@ -106,7 +106,7 @@ function populatePackageDropdown() {
   sel.innerHTML = '<option value="">-- Pilih Pakej --</option>';
   loadPackages();
   currentPackages.forEach((pkg, idx) => {
-    sel.innerHTML += `<option value="${idx}" data-level="${escapeHtml(pkg.level)}" data-reg="${pkg.registration}" data-monthly="${pkg.monthly}" data-subjects="${escapeHtml(pkg.subjects)}">${escapeHtml(pkg.level)} (RM${pkg.monthly}/subjek)</option>`;
+    sel.innerHTML += `<option value="${idx}" data-level="${escapeHtml(pkg.level)}" data-reg="${pkg.registration}" data-monthly="${pkg.monthly}" data-note="${escapeHtml(pkg.note)}" data-subjects="${escapeHtml(pkg.subjects)}">${escapeHtml(pkg.level)} (RM${pkg.monthly || 'pakej'}/subjek)</option>`;
   });
 }
 
@@ -149,14 +149,24 @@ async function submitStudent() {
   // Auto-create enrollments from selected package
   const pkgSel = document.getElementById('a-package');
   const pkgOpt = pkgSel ? pkgSel.selectedOptions[0] : null;
-  if (pkgOpt && pkgOpt.dataset.subjects && pkgOpt.dataset.monthly) {
+  if (pkgOpt && pkgOpt.dataset.subjects) {
     const subjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
-    const monthlyFee = Number(pkgOpt.dataset.monthly);
-    for (const subj of subjects) {
-      await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthlyFee, hoursPerMonth: 4 });
+    const monthly = Number(pkgOpt.dataset.monthly);
+    const note = pkgOpt.dataset.note || '';
+    if (monthly > 0) {
+      // Simple per-subject pricing
+      for (const subj of subjects) {
+        await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
+      }
+    } else {
+      // Tiered pricing (monthly=0): parse note for total e.g. "4: RM100"
+      const totalMatch = note.match(new RegExp(subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+      const totalFee = totalMatch ? Number(totalMatch[1]) : 0;
+      // Create one combined enrollment with total fee
+      await addEnrollment({ studentID: res.studentID, subject: subjects.join(', '), monthlyFee: totalFee, hoursPerMonth: 4 });
     }
   }
-  alert(res.success ? `Pelajar disimpan: ${res.studentID}. ${pkgOpt && pkgOpt.dataset.subjects ? pkgOpt.dataset.subjects.split(',').length + ' subjek ditambah.' : 'Sila tambah subjek di tab Subjek.'}` : res.error);
+  alert(res.success ? `Pelajar disimpan: ${res.studentID}. ${pkgOpt && pkgOpt.dataset.subjects ? pkgOpt.dataset.subjects.split(',').length + ' subjek dari pakej.' : 'Sila tambah subjek di tab Subjek.'}` : res.error);
   if (res.success) {
     clearStudentForm();
     loadAdminData();
@@ -242,8 +252,7 @@ function renderStudents(students) {
       </div>
       <div class="flex items-center gap-2">
         <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(s.status)}</span>
-        <button onclick="editStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-blue-900 text-amber-300 px-3 py-1 rounded-lg hover:bg-blue-800 transition font-medium">Edit</button>
-      </div>
+        <button onclick="editStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-blue-900 text-amber-300 px-3 py-1 rounded-lg hover:bg-blue-800 transition font-medium">Edit</button>        <button onclick="removeStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-500 transition font-medium">Buang</button>      </div>
     `;
     container.appendChild(div);
   });
@@ -337,6 +346,14 @@ async function saveEditStudent(studentID) {
   }
   alert('Pelajar dikemaskini.');
   document.getElementById('edit-student-modal').remove();
+  loadAdminData();
+}
+
+async function removeStudent(studentID) {
+  if (!confirm('Buang pelajar ini? Status akan ditukar ke Inactive.')) return;
+  const res = await updateStudent(studentID, { status: 'Inactive' });
+  if (res.error) { alert('Ralat: ' + res.error); return; }
+  alert('Pelajar dibuang.');
   loadAdminData();
 }
 

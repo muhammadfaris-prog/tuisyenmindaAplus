@@ -11,7 +11,15 @@ async function lookupStudent() {
   document.getElementById('info-name').textContent = data.studentName;
   document.getElementById('info-phone').textContent = data.parentPhone || '-';
   document.getElementById('info-level').textContent = data.schoolLevel;
-  document.getElementById('info-subjects').textContent = data.subjects.join(', ');
+  // Show enrollment breakdown with fees
+  const esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  let subjHtml = '';
+  if (data.enrollments && data.enrollments.length) {
+    subjHtml = data.enrollments.map(e => '<span class=\"inline-block bg-slate-700 px-2 py-1 rounded text-xs mr-1 mb-1\">' + esc(e.subject) + ' <b class=\"text-amber-400\">RM' + Number(e.monthlyFee).toFixed(0) + '</b></span>').join('');
+  } else {
+    subjHtml = '<span class=\"text-slate-500\">-</span>';
+  }
+  document.getElementById('info-subjects').innerHTML = subjHtml;
   document.getElementById('info-fee').textContent = data.monthlyTotal.toFixed(2);
   document.getElementById('info-reg').textContent = Number(data.registrationFee || 0).toFixed(2);
 
