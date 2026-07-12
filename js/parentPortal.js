@@ -71,26 +71,34 @@ async function submitReceipt() {
   const monthYear = document.getElementById('payment-month').value;
   if (!monthYear) return alert('Sila pilih BULAN bayaran sebelum hantar resit.');
 
+  const amountInput = document.getElementById('receipt-amount');
+  const amountPaid = parseFloat(amountInput.value);
+  if (!amountInput.value || isNaN(amountPaid) || amountPaid <= 0) {
+    return alert('Sila masukkan amaun yang dibayar (RM).');
+  }
+
   const file = fileInput.files[0];
   const reader = new FileReader();
   reader.onload = async function () {
     const base64 = reader.result.split(',')[1];
-    const monthYear = document.getElementById('payment-month').value;
     const res = await uploadReceipt(
       state.student.parentIC,
       monthYear,
       base64,
       file.name,
       file.type,
-      state.pendingBill || ''
+      state.pendingBill || '',
+      amountPaid
     );
     const msg = document.getElementById('receipt-msg');
     if (res.success) {
       msg.textContent = 'Resit berjaya dihantar. Terima kasih!';
-      msg.className = 'mt-3 text-sm font-medium text-emerald-600';
+      msg.className = 'mt-3 text-sm font-medium text-emerald-400';
+      amountInput.value = '';
+      fileInput.value = '';
     } else {
       msg.textContent = 'Ralat: ' + res.error;
-      msg.className = 'mt-3 text-sm font-medium text-red-500';
+      msg.className = 'mt-3 text-sm font-medium text-red-400';
     }
   };
   reader.readAsDataURL(file);

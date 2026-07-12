@@ -36,7 +36,7 @@ async function createBill(parentIC, monthYear, amount, email) {
   return gasPost({ action: 'createBill', parentIC, monthYear, amount, email });
 }
 
-async function uploadReceipt(parentIC, monthYear, base64, fileName, mimeType, gatewayBillID) {
+async function uploadReceipt(parentIC, monthYear, base64, fileName, mimeType, gatewayBillID, amountPaid) {
   return gasPost({
     action: 'uploadReceipt',
     parentIC,
@@ -44,7 +44,8 @@ async function uploadReceipt(parentIC, monthYear, base64, fileName, mimeType, ga
     receiptBase64: base64,
     fileName,
     mimeType,
-    gatewayBillID
+    gatewayBillID,
+    amountPaid: amountPaid || 0
   });
 }
 

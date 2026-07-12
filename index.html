@@ -16,7 +16,7 @@
     .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
   </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 to-blue-950 text-slate-200 min-h-screen">
+  <body class="bg-gradient-to-br from-slate-950 to-blue-950 text-slate-100 min-h-screen">
   <nav class="bg-blue-950 text-amber-400 shadow-lg sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center gap-3">
@@ -38,7 +38,7 @@
     <section id="parent-portal" class="fade-in">
       <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 md:p-8 mb-6 card">
         <h2 class="text-2xl font-bold mb-2 text-amber-400">Portal Ibu Bapa</h2>
-        <p class="text-slate-500 mb-6 text-sm">Semak yuran pelajar dan buat pembayaran secara atas talian.</p>
+        <p class="text-slate-300 mb-6 text-sm">Semak yuran pelajar dan buat pembayaran secara atas talian.</p>
         <label class="block text-sm font-semibold mb-2">Nombor Kad Pengenalan (IC)</label>
         <div class="flex gap-3">
           <input id="parent-ic" type="text" inputmode="numeric" placeholder="e.g. 800101011234" class="border border-slate-600 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" />
@@ -50,28 +50,28 @@
         <div class="flex items-start justify-between mb-4">
           <div>
             <h3 class="text-xl font-bold text-amber-400" id="info-name"></h3>
-            <p class="text-sm text-slate-500">No. Telefon: <span id="info-phone"></span></p>
+          <p class="text-sm text-slate-300">No. Telefon: <span id="info-phone"></span></p>
           </div>
           <span id="info-status" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400">Aktif</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
-            <p class="text-xs text-slate-500 uppercase tracking-wide">Tahap</p>
-            <p class="font-semibold text-slate-200" id="info-level"></p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide">Tahap</p>
+            <p class="font-semibold text-slate-100" id="info-level"></p>
           </div>
           <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600 md:col-span-2">
-            <p class="text-xs text-slate-500 uppercase tracking-wide">Subjek</p>
-            <p class="font-semibold text-slate-200" id="info-subjects"></p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide">Subjek</p>
+            <p class="font-semibold text-slate-100" id="info-subjects"></p>
           </div>
         </div>
         <div class="bg-amber-500/10 rounded-xl p-5 border border-amber-500/30 mb-6 flex items-center justify-between">
           <div>
-            <p class="text-sm text-amber-500 font-medium">Yuran Bulanan</p>
-            <p class="text-3xl font-bold text-amber-400">RM <span id="info-fee"></span></p>
+            <p class="text-sm text-amber-200 font-medium">Yuran Bulanan</p>
+            <p class="text-3xl font-bold text-amber-300">RM <span id="info-fee"></span></p>
           </div>
           <div class="text-right">
-            <p class="text-sm text-amber-500 font-medium">Yuran Pendaftaran</p>
-            <p class="text-xl font-bold text-amber-400">RM <span id="info-reg"></span></p>
+            <p class="text-sm text-amber-200 font-medium">Yuran Pendaftaran</p>
+            <p class="text-xl font-bold text-amber-300">RM <span id="info-reg"></span></p>
           </div>
         </div>
 
@@ -95,25 +95,27 @@
       <!-- QR Code Payment Section -->
       <div id="qr-section" class="hidden bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 md:p-8 mb-6 card text-center">
         <h3 class="text-xl font-bold mb-2 text-amber-400">Bayar melalui QR Code</h3>
-        <p class="text-slate-500 mb-6 text-sm">Imbas kod QR di bawah menggunakan aplikasi e-wallet atau perbankan anda. Selepas bayar, sila muat naik resit.</p>
+        <p class="text-slate-300 mb-6 text-sm">Imbas kod QR di bawah menggunakan aplikasi e-wallet atau perbankan anda. Selepas bayar, sila muat naik resit.</p>
         <div class="inline-block p-4 bg-white rounded-2xl border-2 border-amber-500/30 shadow-inner mb-4">
           <img id="qr-image" src="Qr code image test.jpeg" alt="QR Code Pembayaran" class="w-64 h-64 object-contain rounded-xl" />
         </div>
-        <p class="text-sm text-slate-500 mb-4">Jumlah: <strong class="text-amber-400">RM <span id="qr-amount">0.00</span></strong></p>
+        <p class="text-sm text-slate-300 mb-4">Jumlah: <strong class="text-amber-300">RM <span id="qr-amount">0.00</span></strong></p>
         <button onclick="showReceiptUpload()" class="bg-blue-950 text-amber-400 px-6 py-2 rounded-xl hover:bg-blue-900 transition">Saya sudah bayar — Muat Naik Resit</button>
       </div>
 
       <div id="receipt-section" class="hidden bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 md:p-8 card">
         <h3 class="text-xl font-bold mb-2 text-amber-400">Muat Naik Resit Pembayaran</h3>
-        <p class="text-slate-500 mb-4 text-sm">Sila muat naik screenshot atau PDF resit pembayaran anda.</p>
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-          <label class="text-sm font-semibold text-amber-800">📅 Bulan Bayaran (wajib):</label>
-          <p class="text-xs text-amber-600 mb-2">Sila pastikan bulan betul sebelum muat naik. Pilih di bahagian "Bulan Bayaran" di atas.</p>
-          <p class="text-sm font-bold text-amber-800" id="receipt-month-display">—</p>
+        <p class="text-slate-300 mb-4 text-sm">Sila muat naik screenshot atau PDF resit pembayaran anda.</p>
+        <div class="bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4">
+          <label class="text-sm font-semibold text-amber-900">📅 Bulan Bayaran (wajib):</label>
+          <p class="text-xs text-amber-800 mb-2">Sila pastikan bulan betul sebelum muat naik. Pilih di bahagian "Bulan Bayaran" di atas.</p>
+          <p class="text-sm font-bold text-amber-900" id="receipt-month-display">—</p>
         </div>
+        <label for="receipt-amount" class="block text-sm font-semibold mb-2">Amaun Dibayar (RM)</label>
+        <input id="receipt-amount" type="number" step="0.01" min="0" placeholder="Contoh: 80.00" class="border border-slate-600 rounded-xl px-4 py-3 w-full mb-4 focus:outline-none focus:ring-2 focus:ring-amber-400" />
         <label for="receipt-file" class="sr-only">Pilih fail resit</label>
-        <input id="receipt-file" type="file" accept="image/*,.pdf" title="Pilih fail resit" class="border border-slate-600 rounded-xl px-4 py-3 w-full mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20" />
-        <button onclick="submitReceipt()" class="bg-blue-950 text-amber-400 px-6 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Hantar Resit</button>
+        <input id="receipt-file" type="file" accept="image/*,.pdf" title="Pilih fail resit" class="border border-slate-600 rounded-xl px-4 py-3 w-full mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-500/20 file:text-amber-700 hover:file:bg-amber-500/30" />
+        <button onclick="submitReceipt()" class="bg-blue-950 text-amber-300 px-6 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Hantar Resit</button>
         <p id="receipt-msg" class="mt-3 text-sm font-medium"></p>
       </div>
     </section>
@@ -124,7 +126,7 @@
       <div id="admin-login" class="bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 md:p-8 mb-6 card max-w-md mx-auto text-center">
         <div class="w-14 h-14 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🔒</div>
         <h2 class="text-2xl font-bold mb-2 text-amber-400">Akses Admin</h2>
-        <p class="text-slate-500 mb-4 text-sm">Sila masukkan kata laluan untuk mengurus pelajar dan resit.</p>
+        <p class="text-slate-300 mb-4 text-sm">Sila masukkan kata laluan untuk mengurus pelajar dan resit.</p>
         <label for="admin-password" class="sr-only">Kata laluan</label>
         <input id="admin-password" type="password" title="Kata laluan" placeholder="Kata laluan" class="border border-slate-600 rounded-xl px-4 py-3 w-full mb-4 focus:outline-none focus:ring-2 focus:ring-amber-400" />
         <button onclick="loginAdmin()" class="w-full bg-blue-950 text-amber-400 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Log Masuk</button>
@@ -168,6 +170,7 @@
                 <option>Personal Class (1 to 1)</option>
               </select>
               <input id="a-regFee" placeholder="Yuran Pendaftaran (RM)" type="number" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              <input id="a-startMonth" type="month" title="Bulan Mula Yuran" class="border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-400" />
             </div>
             <button onclick="submitStudent()" class="mt-5 bg-blue-950 text-amber-400 px-6 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Simpan Pelajar</button>
           </div>
@@ -227,7 +230,7 @@
                 <button onclick="resetPackages()" class="text-sm text-slate-500 hover:text-amber-500 underline">Tetapkan Semula ke Default</button>
               </div>
             </div>
-            <p class="text-slate-500 text-sm mb-4">Ubah harga pakej di sini. Perubahan akan disimpan dalam penyemak imbas ini dan digunakan untuk paparan yuran.</p>
+              <p class="text-slate-300 text-sm mb-4">Ubah harga pakej di sini. Perubahan akan disimpan dalam penyemak imbas ini dan digunakan untuk paparan yuran.</p>
             <div id="packages-editor" class="space-y-4"></div>
             <button onclick="savePackages()" class="mt-5 bg-blue-950 text-amber-400 px-6 py-3 rounded-xl font-medium hover:bg-blue-900 transition shadow-md">Simpan Pakej</button>
           </div>
@@ -257,7 +260,7 @@
         <div id="admin-payments" class="admin-panel hidden">
           <div class="bg-slate-800 rounded-2xl shadow-sm border border-slate-600 p-6 card">
             <h3 class="text-xl font-bold mb-2 text-amber-400">Penjejak Bayaran Bulanan</h3>
-            <p class="text-sm text-slate-500 mb-4">Jejaki status bayaran setiap pelajar mengikut bulan. ✅ = Lulus, ⏳ = Menunggu, — = Belum Bayar.</p>
+        <p class="text-sm text-slate-300 mb-4">Jejaki status bayaran setiap pelajar mengikut bulan. ✅ = Lulus, ⏳ = Menunggu, — = Belum Bayar. Hanya bulan dari bulan mula yuran pelajar dikira.</p>
             <div id="payments-tracker" class="space-y-3"></div>
           </div>
         </div>
@@ -273,7 +276,7 @@
     </section>
   </main>
 
-  <footer class="max-w-5xl mx-auto px-4 pb-8 text-center text-slate-500 text-sm">
+  <footer class="max-w-5xl mx-auto px-4 pb-8 text-center text-slate-300 text-sm">
     <p>© Pusat Tuisyen Minda A+. Untuk pendaftaran dan jadual kelas, hubungi/whatsapp 011-1070 0034 (Pn. Azimah)</p>
   </footer>
 

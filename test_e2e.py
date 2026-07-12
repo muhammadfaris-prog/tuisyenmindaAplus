@@ -25,9 +25,9 @@ def run_tests():
             print('TEST 1: Page loads correctly')
             page.goto(BASE_URL, wait_until='networkidle', timeout=15000)
             title = page.title()
-            assert 'Zool Tuisyen' in title, f'Wrong title: {title}'
+            assert 'Minda A+' in title, f'Wrong title: {title}'
             results['passed'].append('Page loads with correct title')
-            print(f'  ✅ Page title: {title}')
+            print(f'  OK Page title: {title}')
             
             # ============ TEST 2: Navigation ============
             print('TEST 2: Navigation between portals')

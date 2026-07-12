@@ -19,7 +19,7 @@ function getSheet(name) {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const headers = {
-    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status'],
+    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status', 'startMonth'],
     'Enrollments': ['enrollmentID', 'studentID', 'subject', 'monthlyFee', 'hoursPerMonth', 'createdAt', 'status'],
     'Payments': ['paymentID', 'studentID', 'parentIC', 'monthYear', 'amountDue', 'amountPaid', 'paymentMethod', 'gatewayBillID', 'gatewayStatus', 'receiptURL', 'receiptFileName', 'adminApproval', 'adminNotes', 'createdAt', 'paidAt']
   };
@@ -116,6 +116,7 @@ function doGet(e) {
       schoolLevel: r[5],
       registrationFee: r[6],
       status: r[8],
+      startMonth: r[9] || '',
       monthlyTotal: feeInfo.total,
       subjects: feeInfo.subjects,
       enrollments: feeInfo.enrollments
@@ -279,6 +280,7 @@ function handleUploadReceipt(params) {
   const fileName = params.fileName || 'receipt.png';
   const mimeType = params.mimeType || 'image/png';
   const gatewayBillID = params.gatewayBillID || '';
+  const amountPaid = Number(params.amountPaid || 0);
 
   if (!ic || !monthYear || !base64Data) {
     return jsonResponse({ error: 'Missing required fields' }, 400);
@@ -295,10 +297,11 @@ function handleUploadReceipt(params) {
   const data = payments.getDataRange().getValues();
   let updated = false;
 
-  for (let i = 1; i < data.length; i++) {
+    for (let i = 1; i < data.length; i++) {
     if (String(data[i][2]).trim() === String(ic).trim() &&
         String(data[i][3]).trim() === String(monthYear).trim() &&
         (gatewayBillID === '' || String(data[i][7]).trim() === String(gatewayBillID).trim())) {
+      payments.getRange(i + 1, 6).setValue(amountPaid);    // amountPaid
       payments.getRange(i + 1, 10).setValue(fileUrl);      // receiptURL
       payments.getRange(i + 1, 11).setValue(fileName);     // receiptFileName
       payments.getRange(i + 1, 12).setValue('Pending');    // adminApproval
@@ -316,7 +319,7 @@ function handleUploadReceipt(params) {
       ic,
       monthYear,
       0,
-      0,
+      amountPaid,
       'Bank Transfer',
       gatewayBillID,
       'pending',
@@ -336,6 +339,8 @@ function handleAddStudent(params) {
   const sheet = getSheet(SHEET_NAME_STUDENTS);
   const nextRow = sheet.getLastRow() + 1;
   const studentID = generateID('STU', nextRow);
+  const now = new Date();
+  const startMonth = params.startMonth || (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
 
   sheet.appendRow([
     studentID,
@@ -345,8 +350,9 @@ function handleAddStudent(params) {
     params.studentName,
     params.schoolLevel,
     params.registrationFee || 0,
-    new Date().toISOString(),
-    'Active'
+    now.toISOString(),
+    'Active',
+    startMonth
   ]);
 
   return jsonResponse({ success: true, studentID: studentID });
@@ -368,6 +374,7 @@ function handleUpdateStudent(params) {
       if (params.studentName !== undefined)    sheet.getRange(row, 5).setValue(params.studentName);
       if (params.schoolLevel !== undefined)    sheet.getRange(row, 6).setValue(params.schoolLevel);
       if (params.registrationFee !== undefined) sheet.getRange(row, 7).setValue(params.registrationFee);
+      if (params.startMonth !== undefined)       sheet.getRange(row, 10).setValue(params.startMonth);
       if (params.status !== undefined)         sheet.getRange(row, 9).setValue(params.status);
       return jsonResponse({ success: true, studentID: studentID });
     }
@@ -406,7 +413,8 @@ function handleListStudents(params) {
       studentName: data[i][4],
       schoolLevel: data[i][5],
       registrationFee: data[i][6],
-      status: data[i][8]
+      status: data[i][8],
+      startMonth: data[i][9] || ''
     });
   }
   return jsonResponse({ success: true, students: out });
@@ -503,7 +511,8 @@ function handlePaymentSummary(params) {
         parentIC: String(studentData[i][1] || ''),
         parentName: studentData[i][2] || '',
         parentPhone: studentData[i][3] || '',
-        registrationFee: studentData[i][6] || 0
+        registrationFee: studentData[i][6] || 0,
+        startMonth: studentData[i][9] || ''
       });
     }
   }
@@ -538,6 +547,13 @@ function handlePaymentSummary(params) {
     }
   }
 
+  // Always include all 12 months of the current year
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  for (let m = 1; m <= 12; m++) {
+    allMonths.add(currentYear + '-' + String(m).padStart(2, '0'));
+  }
+
   // Sort months
   const months = Array.from(allMonths).sort();
 
@@ -548,10 +564,12 @@ function handlePaymentSummary(params) {
     const monthlyFee = feeInfo.total;
 
     const monthStatus = {};
+    const paymentDetails = {};
     months.forEach(m => {
       const key = st.studentID + '|' + m;
       const p = paymentMap[key];
       monthStatus[m] = p ? p.adminApproval || 'Pending' : null;
+      paymentDetails[m] = p || null;
     });
 
     return {
@@ -560,11 +578,9 @@ function handlePaymentSummary(params) {
       schoolLevel: st.schoolLevel,
       parentName: st.parentName,
       monthlyFee: monthlyFee,
+      startMonth: st.startMonth || (currentYear + '-01'),
       monthStatus: monthStatus,
-      paymentDetails: months.map(m => {
-        const key = st.studentID + '|' + m;
-        return paymentMap[key] || null;
-      })
+      paymentDetails: paymentDetails
     };
   });
 

@@ -100,13 +100,15 @@ function escapeHtml(text) {
 }
 
 async function submitStudent() {
+  const startMonthInput = document.getElementById('a-startMonth').value;
   const student = {
     parentIC: document.getElementById('a-parentIC').value,
     parentName: document.getElementById('a-parentName').value,
     parentPhone: document.getElementById('a-parentPhone').value,
     studentName: document.getElementById('a-studentName').value,
     schoolLevel: document.getElementById('a-schoolLevel').value,
-    registrationFee: document.getElementById('a-regFee').value
+    registrationFee: document.getElementById('a-regFee').value,
+    startMonth: startMonthInput || new Date().toISOString().slice(0, 7)
   };
 
   // Basic validation
@@ -128,9 +130,11 @@ async function submitStudent() {
 }
 
 function clearStudentForm() {
-  ['a-parentIC', 'a-parentName', 'a-parentPhone', 'a-studentName', 'a-schoolLevel', 'a-regFee'].forEach(id => {
+  ['a-parentIC', 'a-parentName', 'a-parentPhone', 'a-studentName', 'a-schoolLevel', 'a-regFee', 'a-startMonth'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  // Default start month to current month
+  document.getElementById('a-startMonth').value = new Date().toISOString().slice(0, 7);
 }
 
 async function submitEnrollment() {
@@ -196,13 +200,14 @@ function renderStudents(students) {
       <div class="flex items-start gap-3">
         <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
         <div>
-          <p class="font-semibold text-slate-100">${escapeHtml(s.studentName)} <span class="text-xs font-normal text-slate-400">(${escapeHtml(s.studentID)})</span></p>
-          <p class="text-sm text-slate-400">${escapeHtml(s.schoolLevel)} • ${escapeHtml(s.parentName)} • ${escapeHtml(s.parentPhone)} • IC: ${escapeHtml(String(s.parentIC))}</p>
+          <p class="font-semibold text-slate-100">${escapeHtml(s.studentName)} <span class="text-xs font-normal text-slate-300">(${escapeHtml(s.studentID)})</span></p>
+          <p class="text-sm text-slate-300">${escapeHtml(s.schoolLevel)} • ${escapeHtml(s.parentName)} • ${escapeHtml(s.parentPhone)} • IC: ${escapeHtml(String(s.parentIC))}</p>
+          <p class="text-xs text-slate-400">Mula yuran: ${formatMonthYear(s.startMonth)}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-xs px-2 py-1 rounded-full ${s.status === 'Active' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-600 text-slate-300'}">${escapeHtml(s.status)}</span>
-        <button onclick="editStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-blue-900 text-amber-400 px-3 py-1 rounded-lg hover:bg-blue-800 transition font-medium">Edit</button>
+        <button onclick="editStudent('${escapeHtml(s.studentID)}')" class="text-xs bg-blue-900 text-amber-300 px-3 py-1 rounded-lg hover:bg-blue-800 transition font-medium">Edit</button>
       </div>
     `;
     container.appendChild(div);
@@ -260,6 +265,10 @@ function editStudent(studentID) {
           <input id="edit-regFee" type="number" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(s.registrationFee||0)}" />
         </div>
         <div>
+          <label class="text-xs text-slate-400">Bulan Mula Yuran</label>
+          <input id="edit-startMonth" type="month" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(s.startMonth || '')}" />
+        </div>
+        <div>
           <label class="text-xs text-slate-400">Status</label>
           <select id="edit-status" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
             <option value="Active" ${s.status === 'Active' ? 'selected' : ''}>Aktif</option>
@@ -283,6 +292,7 @@ async function saveEditStudent(studentID) {
     studentName: document.getElementById('edit-studentName').value,
     schoolLevel: document.getElementById('edit-schoolLevel').value,
     registrationFee: document.getElementById('edit-regFee').value,
+    startMonth: document.getElementById('edit-startMonth').value,
     status: document.getElementById('edit-status').value
   };
   const res = await updateStudent(studentID, updates);
@@ -372,32 +382,34 @@ function renderPaymentTracker(filterMonth) {
   });
   monthFilterHTML += '</select>';
 
-  // Summary stats
+  // Summary stats: only count months on/after each student's startMonth
   let totalPaid = 0, totalPending = 0, totalUnpaid = 0;
   students.forEach(st => {
+    const start = st.startMonth || months[0];
     months.forEach(m => {
+      if (m < start) return; // before billing starts
       const status = st.monthStatus[m];
       if (status === 'Approved') totalPaid++;
       else if (status === 'Pending') totalPending++;
-      else if (!status) totalUnpaid++;
+      else totalUnpaid++;
     });
   });
 
   let html = `
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4">
       <div class="flex gap-3 text-sm flex-wrap">
-        <span class="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full font-medium">Lulus: ${totalPaid}</span>
-        <span class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full font-medium">Menunggu: ${totalPending}</span>
-        <span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full font-medium">Belum: ${totalUnpaid}</span>
+        <span class="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full font-medium">Lulus: ${totalPaid}</span>
+        <span class="bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-medium">Menunggu: ${totalPending}</span>
+        <span class="bg-red-500/20 text-red-300 px-3 py-1 rounded-full font-medium">Belum: ${totalUnpaid}</span>
       </div>
       <div class="flex gap-2">
-        <input id="payment-student-search" type="text" oninput="filterPaymentTracker()" placeholder="Cari nama pelajar..." class="border border-slate-600 bg-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        <input id="payment-student-search" type="text" oninput="filterPaymentTracker()" placeholder="Cari nama pelajar..." class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-amber-400" />
         ${monthFilterHTML}
       </div>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left">
-        <thead class="bg-slate-700 text-slate-300 uppercase text-xs">
+        <thead class="bg-slate-700 text-slate-100 uppercase text-xs">
           <tr>
             <th class="px-3 py-3 rounded-l-lg sticky left-0 bg-slate-700">#</th>
             <th class="px-3 py-3">Pelajar</th>
@@ -411,6 +423,7 @@ function renderPaymentTracker(filterMonth) {
   html += '<th class="px-3 py-3 rounded-r-lg text-center">Bulan Dibayar</th></tr></thead><tbody class="divide-y divide-slate-600">';
 
   students.forEach((st, idx) => {
+    const start = st.startMonth || months[0];
     // Collect paid months for summary
     const paidMonths = [];
     displayMonths.forEach(m => {
@@ -418,23 +431,29 @@ function renderPaymentTracker(filterMonth) {
     });
 
     html += '<tr class="hover:bg-slate-700/50">';
-    html += '<td class="px-3 py-3 text-amber-400 font-bold sticky left-0 bg-slate-800">' + (idx + 1) + '</td>';
-    html += '<td class="px-3 py-3 font-medium text-slate-100">' + escapeHtml(st.studentName) + '<br><span class="text-xs text-slate-400">' + escapeHtml(st.studentID) + '</span></td>';
+    html += '<td class="px-3 py-3 text-amber-300 font-bold sticky left-0 bg-slate-800">' + (idx + 1) + '</td>';
+    html += '<td class="px-3 py-3 font-medium text-slate-100">' + escapeHtml(st.studentName) + '<br><span class="text-xs text-slate-300">' + escapeHtml(st.studentID) + '</span></td>';
     html += '<td class="px-3 py-3 text-slate-300">' + escapeHtml(st.schoolLevel) + '</td>';
-    html += '<td class="px-3 py-3 font-medium text-amber-400">' + Number(st.monthlyFee).toFixed(2) + '</td>';
+    html += '<td class="px-3 py-3 font-medium text-amber-300">' + Number(st.monthlyFee).toFixed(2) + '</td>';
 
     displayMonths.forEach(m => {
+      if (m < start) {
+        html += '<td class="px-3 py-3 text-center"><span class="text-slate-500" title="Sebelum mula yuran">—</span></td>';
+        return;
+      }
       const status = st.monthStatus[m];
+      const detail = st.paymentDetails[m];
       if (status === 'Approved') {
-        html += '<td class="px-3 py-3 text-center"><span title="' + formatMonthYear(m) + ' - Lulus" class="text-amber-400 font-bold">RM' + Number(st.monthlyFee).toFixed(0) + '</span></td>';
+        const paid = detail && detail.amountPaid ? Number(detail.amountPaid).toFixed(0) : Number(st.monthlyFee).toFixed(0);
+        html += '<td class="px-3 py-3 text-center"><span title="' + formatMonthYear(m) + ' - Lulus (RM ' + paid + ')" class="text-amber-300 font-bold">RM' + paid + '</span></td>';
       } else if (status === 'Pending') {
-        html += '<td class="px-3 py-3 text-center"><span title="' + formatMonthYear(m) + ' - Menunggu" class="text-yellow-400">⏳</span></td>';
+        html += '<td class="px-3 py-3 text-center"><span title="' + formatMonthYear(m) + ' - Menunggu" class="text-yellow-300">⏳</span></td>';
       } else {
         html += '<td class="px-3 py-3 text-center"><span class="text-slate-300">—</span></td>';
       }
     });
 
-    html += '<td class="px-3 py-3 text-xs text-slate-400">' + (paidMonths.length ? paidMonths.join(', ') : '—') + '</td>';
+    html += '<td class="px-3 py-3 text-xs text-slate-300">' + (paidMonths.length ? paidMonths.join(', ') : '—') + '</td>';
     html += '</tr>';
   });
 
@@ -534,5 +553,8 @@ async function approve(paymentID, status) {
   alert(res.success ? 'Status dikemaskini.' : res.error);
   // Clear cache so payment tracker + receipt list reload fresh
   paymentSummaryData = null;
-  loadAdminData();
+  await loadAdminData();
+  if (state.adminTab === 'payments') {
+    await loadPaymentTracker();
+  }
 }
