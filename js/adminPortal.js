@@ -44,7 +44,7 @@ function deletePackage(idx) {
   currentPackages.splice(idx, 1);
   localStorage.setItem('zool_packages', JSON.stringify(currentPackages));
   renderPackagesEditor();
-  populatePackageDropdown();
+  initRegForm();
 }
 
 function addBlankPackage() {
@@ -108,139 +108,217 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Populate package dropdown in registration form
-function populatePackageDropdown() {
-  const sel = document.getElementById('a-package');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">-- Pilih Pakej --</option>';
-  loadPackages();
-  currentPackages.forEach((pkg, idx) => {
-    sel.innerHTML += `<option value="${idx}" data-level="${escapeHtml(pkg.level)}" data-reg="${pkg.registration}" data-monthly="${pkg.monthly}" data-note="${escapeHtml(pkg.note)}" data-subjects="${escapeHtml(pkg.subjects)}">${escapeHtml(pkg.level)} (RM${pkg.monthly || 'pakej'}/subjek)</option>`;
-  });
+// Registration form: multi-package row management
+let aPkgCount = 0;
+
+function initRegForm() {
+  aPkgCount = 0;
+  var container = document.getElementById('a-pkg-rows');
+  if (container) container.innerHTML = '';
+  var totalEl = document.getElementById('a-total-calc');
+  if (totalEl) totalEl.innerHTML = '';
+  document.getElementById('a-startMonth').value = new Date().toISOString().slice(0, 7);
+  addRegPkgRow();
 }
 
-// When package is selected, auto-fill school level, reg fee + show subject checkboxes
-function onPackageChange() {
-  const sel = document.getElementById('a-package');
-  const opt = sel.selectedOptions[0];
-  const cboxDiv = document.getElementById('a-subjects-checkboxes');
-  const calcDiv = document.getElementById('a-monthly-calc');
-  
-  if (!opt || !opt.value) {
-    document.getElementById('a-schoolLevel').value = '';
-    document.getElementById('a-regFee').value = '';
-    if (cboxDiv) cboxDiv.classList.add('hidden');
-    if (calcDiv) calcDiv.classList.add('hidden');
-    return;
-  }
-  document.getElementById('a-schoolLevel').value = opt.dataset.level || '';
-  document.getElementById('a-regFee').value = opt.dataset.reg || '0';
-  
-  // Show subject checkboxes
-  const subjects = (opt.dataset.subjects || '').split(',').map(s => s.trim()).filter(s => s);
-  const monthly = Number(opt.dataset.monthly);
-  const note = opt.dataset.note || '';
-  
+function addRegPkgRow() {
+  var container = document.getElementById('a-pkg-rows');
+  if (!container) return;
+  loadPackages();
+  var n = aPkgCount++;
+  var allOpts = '<option value="">-- Pilih Pakej --</option>' + currentPackages.map(function(_, i){ return makePkgOption(i); }).join('');
+  var row = document.createElement('div');
+  row.id = 'a-pkg-row-' + n;
+  row.className = 'border border-slate-600 rounded-xl p-3 mb-2 bg-slate-700/50';
+  row.innerHTML = '<div class="flex items-center justify-between mb-1"><span class="text-xs font-bold text-amber-400">Pakej #' + (n+1) + '</span><button type="button" onclick="removeRegPkgRow(' + n + ')" class="text-xs text-red-400 hover:text-red-300 font-medium">&times; Buang</button></div>' +
+    '<select id="a-pkg-' + n + '" onchange="onRegPkgChange(' + n + ')" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full text-sm mb-2">' + allOpts + '</select>' +
+    '<div id="a-cb-' + n + '" class="hidden mb-1"></div>' +
+    '<div id="a-fee-' + n + '" class="hidden text-xs text-amber-400 font-medium"></div>';
+  container.appendChild(row);
+}
+
+function removeRegPkgRow(n) {
+  var row = document.getElementById('a-pkg-row-' + n);
+  if (row) row.remove();
+  recalcRegTotals();
+}
+
+function onRegPkgChange(n) {
+  var sel = document.getElementById('a-pkg-' + n);
+  var cboxDiv = document.getElementById('a-cb-' + n);
+  var feeDiv = document.getElementById('a-fee-' + n);
+  if (!sel || !sel.value) { if(cboxDiv)cboxDiv.classList.add('hidden'); if(feeDiv)feeDiv.classList.add('hidden'); recalcRegTotals(); return; }
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  var subjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
   if (cboxDiv && subjects.length) {
     cboxDiv.classList.remove('hidden');
-    cboxDiv.innerHTML = '<label class=\"text-xs text-slate-400 block mb-1\">Pilih Subjek (tick):</label>' +
-      subjects.map((s, i) => '<label class=\"inline-flex items-center mr-3 mb-1 cursor-pointer\"><input type=\"checkbox\" class=\"a-subj-cb mr-1\" value=\"' + i + '\" onchange=\"updateMonthlyCalc()\" checked> <span class=\"text-sm text-slate-200\">' + escapeHtml(s) + '</span></label>').join('');
+    cboxDiv.innerHTML = '<label class="text-xs text-slate-400 block mb-1">Pilih Subjek (tick):</label>' +
+      subjects.map(function(s,i){return '<label class="inline-flex items-center mr-3 mb-1 cursor-pointer"><input type="checkbox" class="a-subj-cb-' + n + ' mr-1" value="' + i + '" onchange="onRegCalc(' + n + ')" checked> <span class="text-sm text-slate-200">' + escapeHtml(s) + '</span></label>';}).join('');
   }
-  
-  if (calcDiv) {
-    calcDiv.classList.remove('hidden');
-    updateMonthlyCalc();
-  }
+  if (feeDiv) { feeDiv.classList.remove('hidden'); onRegCalc(n); }
+  recalcRegTotals();
 }
 
-function updateMonthlyCalc() {
-  const sel = document.getElementById('a-package');
-  const opt = sel ? sel.selectedOptions[0] : null;
-  if (!opt || !opt.value) return;
-  const monthly = Number(opt.dataset.monthly);
-  const note = opt.dataset.note || '';
-  const checked = document.querySelectorAll('.a-subj-cb:checked').length;
-  let fee = 0;
-  if (monthly > 0) {
-    fee = checked * monthly;
-  } else {
-    const totalMatch = note.match(new RegExp(checked + '\\s*:\\s*RM(\\d+)', 'i'));
-    fee = totalMatch ? Number(totalMatch[1]) : 0;
+function onRegCalc(n) {
+  var sel = document.getElementById('a-pkg-' + n);
+  var feeDiv = document.getElementById('a-fee-' + n);
+  if (!sel || !sel.value) return;
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  var monthly = Number(pkg.monthly);
+  var note = pkg.note || '';
+  var checked = document.querySelectorAll('.a-subj-cb-' + n + ':checked').length;
+  var fee = 0;
+  if (monthly > 0) { fee = checked * monthly; }
+  else { var m = note.match(new RegExp(checked + '\\s*:\\s*RM(\\d+)', 'i')); fee = m ? Number(m[1]) : 0; }
+  if (feeDiv) feeDiv.innerHTML = '💰 <b>RM' + fee + '</b> (' + checked + ' subjek)';
+  recalcRegTotals();
+}
+
+function recalcRegTotals() {
+  var totalFee = 0, totalReg = 0, levels = [];
+  var container = document.getElementById('a-pkg-rows');
+  if (!container) return;
+  var rows = container.querySelectorAll('[id^="a-pkg-row-"]');
+  rows.forEach(function(row) {
+    var m = row.id.match(/a-pkg-row-(\d+)/);
+    if (!m) return;
+    var n = m[1];
+    var sel = document.getElementById('a-pkg-' + n);
+    if (!sel || !sel.value) return;
+    var pkg = currentPackages[parseInt(sel.value)];
+    if (!pkg) return;
+    totalReg += Number(pkg.registration || 0);
+    if (pkg.level) levels.push(pkg.level);
+    var monthly = Number(pkg.monthly);
+    var note = pkg.note || '';
+    var checked = document.querySelectorAll('.a-subj-cb-' + n + ':checked').length;
+    if (monthly > 0) { totalFee += checked * monthly; }
+    else { var mt = note.match(new RegExp(checked + '\\s*:\\s*RM(\\d+)', 'i')); totalFee += mt ? Number(mt[1]) : 0; }
+  });
+  var lvlEl = document.getElementById('a-schoolLevel');
+  var regEl = document.getElementById('a-regFee');
+  var totEl = document.getElementById('a-total-calc');
+  if (lvlEl) lvlEl.value = levels.join(' + ') || '(pilih pakej)';
+  if (regEl) regEl.value = totalReg;
+  if (totEl) {
+    var sc = document.querySelectorAll('[class*="a-subj-cb-"]:checked').length;
+    totEl.innerHTML = '💰 <b class="text-lg">Jumlah Yuran Bulanan: RM' + totalFee + '</b> (' + sc + ' subjek)';
   }
-  document.getElementById('a-monthly-calc').innerHTML = '💰 Yuran Bulanan: <b class=\"text-lg\">RM' + fee + '</b> (' + checked + ' subjek × RM' + (monthly || 'tiered') + ')';
 }
 
 async function submitStudent() {
-  const startMonthInput = document.getElementById('a-startMonth').value;
-  const student = {
-    parentIC: document.getElementById('a-parentIC').value,
-    parentName: document.getElementById('a-parentName').value,
-    parentPhone: document.getElementById('a-parentPhone').value,
-    studentName: document.getElementById('a-studentName').value,
-    schoolLevel: document.getElementById('a-schoolLevel').value,
-    registrationFee: document.getElementById('a-regFee').value,
-    startMonth: startMonthInput || new Date().toISOString().slice(0, 7)
-  };
+  // Show loading state
+  var saveBtn = document.getElementById('a-save-btn');
+  var saveText = document.getElementById('a-save-text');
+  var saveSpinner = document.getElementById('a-save-spinner');
+  if (saveBtn) saveBtn.disabled = true;
+  if (saveText) saveText.classList.add('hidden');
+  if (saveSpinner) saveSpinner.classList.remove('hidden');
 
-  // Basic validation
-  if (!student.parentIC || !student.studentName) {
-    alert('Sila isi sekurang-kurangnya IC Ibu Bapa dan Nama Pelajar.');
-    return;
-  }
-
-  const res = await addStudent(student);
-  if (res.error) {
-    alert('Ralat: ' + res.error);
-    return;
-  }
-  // Delete old enrollments + create new ones from selected package
-  const pkgSel = document.getElementById('a-package');
-  const pkgOpt = pkgSel ? pkgSel.selectedOptions[0] : null;
-  let monthlyFee = 0;
-  if (pkgOpt && pkgOpt.dataset.subjects) {
-    // Delete existing enrollments for this student first
-    await deleteEnrollmentsByStudent(res.studentID);
-    const allSubjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
-    // Only enroll checked subjects
-    const checkedCbs = document.querySelectorAll('.a-subj-cb:checked');
-    const selectedSubjects = [];
-    checkedCbs.forEach(cb => {
-      const idx = parseInt(cb.value);
-      if (idx >= 0 && idx < allSubjects.length) selectedSubjects.push(allSubjects[idx]);
-    });
-    if (!selectedSubjects.length) selectedSubjects.push(allSubjects[0]); // at least 1
-    const monthly = Number(pkgOpt.dataset.monthly);
-    const note = pkgOpt.dataset.note || '';
-    if (monthly > 0) {
-      monthlyFee = selectedSubjects.length * monthly;
-      for (const subj of selectedSubjects) {
-        await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
-      }
-    } else {
-      const totalMatch = note.match(new RegExp(selectedSubjects.length + '\\\\s*:\\\\s*RM(\\\\d+)', 'i'));
-      monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
-      await addEnrollment({ studentID: res.studentID, subject: selectedSubjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
+  try {
+    // Collect all selected packages
+    var pkgSelections = [];
+    var container = document.getElementById('a-pkg-rows');
+    if (container) {
+      var rows = container.querySelectorAll('[id^="a-pkg-row-"]');
+      rows.forEach(function(row) {
+        var m = row.id.match(/a-pkg-row-(\d+)/);
+        if (!m) return;
+        var n = m[1];
+        var sel = document.getElementById('a-pkg-' + n);
+        if (!sel || !sel.value) return;
+        var pkg = currentPackages[parseInt(sel.value)];
+        if (!pkg) return;
+        var allSubjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+        var checkedCbs = document.querySelectorAll('.a-subj-cb-' + n + ':checked');
+        var selected = [];
+        checkedCbs.forEach(function(cb) {
+          var idx = parseInt(cb.value);
+          if (idx >= 0 && idx < allSubjects.length) selected.push(allSubjects[idx]);
+        });
+        if (!selected.length) selected = allSubjects;
+        pkgSelections.push({ pkg: pkg, subjects: selected });
+      });
     }
-    await updateStudent(res.studentID, { monthlyFee: monthlyFee });
-  }
-  alert(res.success ? `Pelajar disimpan: ${res.studentID}. Yuran bulanan: RM${monthlyFee}.` : res.error);
-  if (res.success) {
+
+    if (!pkgSelections.length) {
+      alert('Sila pilih sekurang-kurangnya satu pakej.');
+      return;
+    }
+
+    var levels = pkgSelections.map(function(ps){ return ps.pkg.level; }).filter(Boolean);
+    var totalReg = 0, totalMonthly = 0;
+    pkgSelections.forEach(function(ps){ totalReg += Number(ps.pkg.registration || 0); });
+    pkgSelections.forEach(function(ps){
+      var monthly = Number(ps.pkg.monthly);
+      var note = ps.pkg.note || '';
+      if (monthly > 0) { totalMonthly += ps.subjects.length * monthly; }
+      else { var mt = note.match(new RegExp(ps.subjects.length + '\\s*:\\s*RM(\\d+)', 'i')); totalMonthly += mt ? Number(mt[1]) : 0; }
+    });
+
+    var startMonthInput = document.getElementById('a-startMonth').value;
+    var student = {
+      parentIC: document.getElementById('a-parentIC').value,
+      parentName: document.getElementById('a-parentName').value,
+      parentPhone: document.getElementById('a-parentPhone').value,
+      studentName: document.getElementById('a-studentName').value,
+      schoolLevel: levels.join(' + '),
+      registrationFee: totalReg,
+      startMonth: startMonthInput || new Date().toISOString().slice(0, 7),
+      monthlyFee: totalMonthly
+    };
+
+    if (!student.parentIC || !student.studentName) {
+      alert('Sila isi sekurang-kurangnya IC Ibu Bapa dan Nama Pelajar.');
+      return;
+    }
+
+    var res = await addStudent(student);
+    if (res.error) { alert('Ralat: ' + res.error); return; }
+
+    // Create enrollments from all selected packages
+    for (var i = 0; i < pkgSelections.length; i++) {
+      var ps = pkgSelections[i];
+      var monthly = Number(ps.pkg.monthly);
+      var note = ps.pkg.note || '';
+      if (monthly > 0) {
+        for (var j = 0; j < ps.subjects.length; j++) {
+          await addEnrollment({ studentID: res.studentID, subject: ps.subjects[j], monthlyFee: monthly, hoursPerMonth: 4 });
+        }
+      } else {
+        var feeForAll = 0;
+        var mt2 = note.match(new RegExp(ps.subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+        feeForAll = mt2 ? Number(mt2[1]) : 0;
+        await addEnrollment({ studentID: res.studentID, subject: ps.subjects.join(', '), monthlyFee: feeForAll, hoursPerMonth: 4 });
+      }
+    }
+    await updateStudent(res.studentID, { monthlyFee: totalMonthly });
+
+    alert('Pelajar disimpan: ' + res.studentID + '. ' + pkgSelections.length + ' pakej, RM' + totalMonthly + '/bulan.');
     clearStudentForm();
     loadAdminData();
+  } finally {
+    // Reset loading state
+    if (saveBtn) saveBtn.disabled = false;
+    if (saveText) saveText.classList.remove('hidden');
+    if (saveSpinner) saveSpinner.classList.add('hidden');
   }
 }
 
 function clearStudentForm() {
-  ['a-parentIC', 'a-parentName', 'a-parentPhone', 'a-studentName', 'a-schoolLevel', 'a-regFee', 'a-startMonth'].forEach(id => {
+  ['a-parentIC', 'a-parentName', 'a-parentPhone', 'a-studentName', 'a-schoolLevel', 'a-regFee'].forEach(function(id) {
     document.getElementById(id).value = '';
   });
-  const pkg = document.getElementById('a-package');
-  if (pkg) pkg.value = '';
-  const cboxDiv = document.getElementById('a-subjects-checkboxes');
-  if (cboxDiv) cboxDiv.classList.add('hidden');
-  const calcDiv = document.getElementById('a-monthly-calc');
-  if (calcDiv) calcDiv.classList.add('hidden');
   document.getElementById('a-startMonth').value = new Date().toISOString().slice(0, 7);
+  var totalEl = document.getElementById('a-total-calc');
+  if (totalEl) totalEl.innerHTML = '';
+  // Reset package rows
+  aPkgCount = 0;
+  var container = document.getElementById('a-pkg-rows');
+  if (container) container.innerHTML = '';
+  addRegPkgRow();
 }
 
 async function submitEnrollment() {
@@ -371,7 +449,10 @@ function editStudent(studentID) {
       </div>
       <div id="edit-total-calc" class="mt-3 text-sm text-amber-400 font-medium"></div>
       <div class="flex gap-3 mt-5">
-        <button onclick="saveEditStudent('${escapeHtml(s.studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Simpan</button>
+        <button id="edit-save-btn" onclick="saveEditStudent('${escapeHtml(s.studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition disabled:opacity-60 disabled:cursor-not-allowed">
+          <span id="edit-save-text">Simpan</span>
+          <span id="edit-save-spinner" class="hidden">⏳ Menyimpan...</span>
+        </button>
         <button onclick="document.getElementById('edit-student-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
       </div>
     </div>
@@ -483,6 +564,15 @@ function recalcEditTotals() {
 }
 
 async function saveEditStudent(studentID) {
+  // Loading state
+  var saveBtn = document.getElementById('edit-save-btn');
+  var saveText = document.getElementById('edit-save-text');
+  var saveSpinner = document.getElementById('edit-save-spinner');
+  if (saveBtn) saveBtn.disabled = true;
+  if (saveText) saveText.classList.add('hidden');
+  if (saveSpinner) saveSpinner.classList.remove('hidden');
+
+  try {
   // Collect all selected packages + checked subjects
   var pkgSelections = [];
   var container = document.getElementById('edit-pkg-rows');
@@ -565,6 +655,11 @@ async function saveEditStudent(studentID) {
   alert('Pelajar dikemaskini! ' + pkgSelections.length + ' pakej, RM' + totalMonthly + '/bulan.');
   document.getElementById('edit-student-modal').remove();
   loadAdminData();
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+    if (saveText) saveText.classList.remove('hidden');
+    if (saveSpinner) saveSpinner.classList.add('hidden');
+  }
 }
 
 async function removeStudent(studentID) {

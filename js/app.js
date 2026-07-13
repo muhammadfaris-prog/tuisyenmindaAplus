@@ -79,7 +79,7 @@ function setAdminTab(tab) {
   }
   if (tab === 'packages') renderPackagesEditor();
   if (tab === 'payments') loadPaymentTracker();
-  if (tab === 'students') { setTimeout(populatePackageDropdown, 200); }
+  if (tab === 'students') { setTimeout(initRegForm, 200); }
 }
 
 // Simple router from URL ?page=...
