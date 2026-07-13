@@ -78,13 +78,13 @@ function renderPackagesEditor() {
         <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center">${idx + 1}</span>
         <span class="text-xs text-slate-400">Pakej #${idx + 1}</span>
       </div>
-      <input class="pkg-level border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" value="${escapeHtml(pkg.level)}" placeholder="Tahap" />
-      <input class="pkg-subjects border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" value="${escapeHtml(pkg.subjects)}" placeholder="Subjek" />
-      <input class="pkg-hours border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" value="${escapeHtml(pkg.hours)}" placeholder="Jam/Bulan" />
-      <input class="pkg-class border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" value="${escapeHtml(pkg.classSize)}" placeholder="Saiz Kelas" />
-      <input class="pkg-reg border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" type="number" value="${pkg.registration}" placeholder="Yuran Pendaftaran" />
-      <input class="pkg-monthly border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2" type="number" value="${pkg.monthly}" placeholder="Yuran Bulanan" />
-      <input class="pkg-note border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 md:col-span-2" value="${escapeHtml(pkg.note)}" placeholder="Nota harga" />
+      <div><label class="text-xs text-slate-500">Tahap</label><input class="pkg-level border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" value="${escapeHtml(pkg.level)}" placeholder="Tahap" /></div>
+      <div class="md:col-span-2"><label class="text-xs text-slate-500">Subjek (pisah guna koma)</label><input class="pkg-subjects border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" value="${escapeHtml(pkg.subjects)}" placeholder="Subjek" /></div>
+      <div><label class="text-xs text-slate-500">Jam / Bulan</label><input class="pkg-hours border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" value="${escapeHtml(pkg.hours)}" placeholder="Jam/Bulan" /></div>
+      <div><label class="text-xs text-slate-500">Saiz Kelas</label><input class="pkg-class border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" value="${escapeHtml(pkg.classSize)}" placeholder="Saiz Kelas" /></div>
+      <div><label class="text-xs text-slate-500">Yuran Pendaftaran (RM)</label><input class="pkg-reg border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" type="number" value="${pkg.registration}" placeholder="0" /></div>
+      <div><label class="text-xs text-slate-500">Yuran Bulanan (RM/subjek)</label><input class="pkg-monthly border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" type="number" value="${pkg.monthly}" placeholder="0" /></div>
+      <div class="md:col-span-2"><label class="text-xs text-slate-500">Nota Harga</label><input class="pkg-note border border-slate-600 bg-slate-700 text-slate-200 rounded-lg px-3 py-2 w-full" value="${escapeHtml(pkg.note)}" placeholder="cth: RM 80 / subjek" /></div>
     `;
     editor.appendChild(div);
 

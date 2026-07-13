@@ -53,6 +53,10 @@ function showStudentDetail(data) {
   if (specialFee > 0) feeHtml += ' <span class=\"text-xs text-amber-400\">(termasuk RM' + specialFee.toFixed(0) + ' tambahan)</span>';
   document.getElementById('info-fee').innerHTML = feeHtml;
   document.getElementById('info-reg').textContent = Number(data.registrationFee || 0).toFixed(2);
+  // Show jam info from first enrollment
+  if (data.enrollments && data.enrollments.length) {
+    document.getElementById('info-hours').textContent = (data.enrollments[0].hoursPerMonth || '-') + ' jam/bulan';
+  }
 
   var now = new Date();
   document.getElementById('payment-month').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
