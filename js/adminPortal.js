@@ -497,8 +497,76 @@ function renderEnrollments(enrollments) {
 }
 
 function editStudentEnrollments(studentID) {
-  if (!confirm('Tukar subjek untuk ' + studentID + '? Ini akan buang subjek lama. Sila daftar semula pelajar dengan pakej baru.')) return;
-  setAdminTab('students');
+  // Find the student
+  const st = allStudents.find(s => s.studentID === studentID);
+  if (!st) return;
+
+  let modal = document.getElementById('change-package-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'change-package-modal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/40';
+    modal.onclick = function(ev) { if (ev.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  loadPackages();
+  const pkgOpts = currentPackages.map((pkg, i) => 
+    '<option value="' + i + '" ' + (pkg.level === st.schoolLevel ? 'selected' : '') + '>' + escapeHtml(pkg.level) + ' (' + pkg.subjects + ')</option>'
+  ).join('');
+
+  modal.innerHTML = `
+    <div class="bg-slate-800 rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-amber-400">Tukar Pakej</h3>
+        <button onclick="document.getElementById('change-package-modal').remove()" class="text-slate-400 hover:text-red-400 text-xl">&times;</button>
+      </div>
+      <p class="text-sm text-slate-400 mb-4">Pelajar: <strong class="text-slate-200">${escapeHtml(st.studentName)} (${escapeHtml(st.studentID)})</strong><br>Tahap semasa: ${escapeHtml(st.schoolLevel)}</p>
+      <div class="mb-4">
+        <label class="text-xs text-slate-400">Pilih Pakej Baru</label>
+        <select id="change-pkg-select" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <option value="">-- Pilih Pakej --</option>
+          ${pkgOpts}
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="applyPackageChange('${escapeHtml(studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Tukar Pakej</button>
+        <button onclick="document.getElementById('change-package-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
+      </div>
+    </div>
+  `;
+}
+
+async function applyPackageChange(studentID) {
+  const sel = document.getElementById('change-pkg-select');
+  if (!sel || !sel.value) return alert('Sila pilih pakej.');
+  const pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+
+  // Delete old enrollments
+  await deleteEnrollmentsByStudent(studentID);
+  
+  // Create new enrollments from package
+  const subjects = pkg.subjects.split(',').map(s => s.trim()).filter(s => s);
+  const monthly = Number(pkg.monthly);
+  let monthlyFee = 0;
+  if (monthly > 0) {
+    monthlyFee = subjects.length * monthly;
+    for (const subj of subjects) {
+      await addEnrollment({ studentID: studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
+    }
+  } else {
+    const totalMatch = pkg.note.match(new RegExp(subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+    monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
+    await addEnrollment({ studentID: studentID, subject: subjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
+  }
+
+  // Update student record
+  await updateStudent(studentID, { schoolLevel: pkg.level, registrationFee: pkg.registration, monthlyFee: monthlyFee });
+  
+  alert('Pakej ditukar! ' + subjects.length + ' subjek, RM' + monthlyFee + '/bulan.');
+  document.getElementById('change-package-modal').remove();
+  loadAdminData();
 }
 
 async function deleteAllEnrollments(studentID) {
