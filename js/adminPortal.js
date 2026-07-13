@@ -551,7 +551,7 @@ function renderEnrollments(enrollments) {
       </div>
       <div class="flex flex-wrap ml-8">${subjTags}</div>
       <div class="flex gap-2 mt-2 ml-8">
-        <button onclick="editStudentEnrollments('${escapeHtml(g.id)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Tukar Subjek</button>
+        <button onclick="editStudentEnrollments('${escapeHtml(g.id)}')" class="text-xs bg-blue-900 text-amber-400 px-2 py-1 rounded-lg hover:bg-blue-800 transition">Tambah/Ganti Pakej</button>
         <button onclick="deleteAllEnrollments('${escapeHtml(g.id)}')" class="text-xs bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-500 transition">Buang Semua</button>
       </div>
     `;
@@ -594,8 +594,15 @@ function editStudentEnrollments(studentID) {
       </div>
       <div id="change-pkg-checkboxes" class="mb-4 hidden"></div>
       <div id="change-pkg-calc" class="mb-4 hidden text-sm text-amber-400 font-medium"></div>
+      <div class="mb-4">
+        <label class="text-xs text-slate-400 block mb-1">Mod</label>
+        <select id="change-pkg-mode" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full text-sm">
+          <option value="add">Tambah Pakej (kekal subjek lama)</option>
+          <option value="replace">Ganti Pakej (buang subjek lama)</option>
+        </select>
+      </div>
       <div class="flex gap-3">
-        <button onclick="applyPackageChange('${escapeHtml(studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Tukar Pakej</button>
+        <button onclick="applyPackageChange('${escapeHtml(studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Simpan</button>
         <button onclick="document.getElementById('change-package-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
       </div>
     </div>
@@ -607,36 +614,50 @@ async function applyPackageChange(studentID) {
   if (!sel || !sel.value) return alert('Sila pilih pakej.');
   var pkg = currentPackages[parseInt(sel.value)];
   if (!pkg) return;
+  var mode = document.getElementById('change-pkg-mode');
+  var isReplace = mode && mode.value === 'replace';
 
   var allSubjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
-  // Get checked subjects from the modal
   var checkedCbs = document.querySelectorAll('.chg-subj-cb:checked');
   var selectedSubjects = [];
   if (checkedCbs.length) {
     checkedCbs.forEach(function(cb){ var i=parseInt(cb.value); if(i>=0 && i<allSubjects.length) selectedSubjects.push(allSubjects[i]); });
   } else {
-    selectedSubjects = allSubjects; // all if no checkboxes shown
+    selectedSubjects = allSubjects;
   }
   if (!selectedSubjects.length) selectedSubjects.push(allSubjects[0]);
 
-  await deleteEnrollmentsByStudent(studentID);
-  var monthly = Number(pkg.monthly);
-  var note = pkg.note || '';
-  var monthlyFee = 0;
-  if (monthly > 0) {
-    monthlyFee = selectedSubjects.length * monthly;
-    for (var s=0; s<selectedSubjects.length; s++) {
-      await addEnrollment({ studentID: studentID, subject: selectedSubjects[s], monthlyFee: monthly, hoursPerMonth: 4 });
-    }
-  } else {
-    var totalMatch = note.match(new RegExp(selectedSubjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
-    monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
-    await addEnrollment({ studentID: studentID, subject: selectedSubjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
+  // Replace mode: delete old enrollments first
+  if (isReplace) {
+    var delRes = await deleteEnrollmentsByStudent(studentID);
+    if (delRes.error) { alert('Ralat buang subjek lama: ' + delRes.error + '. Sila deploy GAS backend.'); return; }
   }
 
-  await updateStudent(studentID, { schoolLevel: pkg.level, registrationFee: pkg.registration, monthlyFee: monthlyFee });
+  var monthly = Number(pkg.monthly);
+  var note = pkg.note || '';
+  var newFee = 0;
+  for (var s=0; s<selectedSubjects.length; s++) {
+    var subjFee = monthly > 0 ? monthly : 0;
+    await addEnrollment({ studentID: studentID, subject: selectedSubjects[s], monthlyFee: subjFee, hoursPerMonth: 4 });
+    newFee += subjFee;
+  }
+  // For tiered packages, create combined enrollment instead
+  if (monthly === 0) {
+    var totalMatch = note.match(new RegExp(selectedSubjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+    newFee = totalMatch ? Number(totalMatch[1]) : 0;
+    await addEnrollment({ studentID: studentID, subject: selectedSubjects.join(', '), monthlyFee: newFee, hoursPerMonth: 4 });
+  }
+
+  // Update student: if replace, set to new package fee; if add, sum all
+  var totalMonthly = newFee;
+  if (!isReplace) {
+    // Fetch current enrollments to sum
+    var st = allStudents.find(function(s){return s.studentID === studentID;});
+    totalMonthly = (Number(st ? st.monthlyFee : 0) || 0) + newFee;
+  }
+  await updateStudent(studentID, { schoolLevel: pkg.level, registrationFee: pkg.registration, monthlyFee: totalMonthly });
   
-  alert('Pakej ditukar! ' + selectedSubjects.length + ' subjek, RM' + monthlyFee + '/bulan.');
+  alert((isReplace ? 'Pakej diganti!' : 'Pakej ditambah!') + ' ' + selectedSubjects.length + ' subjek, RM' + totalMonthly + '/bulan.');
   document.getElementById('change-package-modal').remove();
   loadAdminData();
 }
