@@ -119,17 +119,55 @@ function populatePackageDropdown() {
   });
 }
 
-// When package is selected, auto-fill school level & registration fee
+// When package is selected, auto-fill school level, reg fee + show subject checkboxes
 function onPackageChange() {
   const sel = document.getElementById('a-package');
   const opt = sel.selectedOptions[0];
+  const cboxDiv = document.getElementById('a-subjects-checkboxes');
+  const calcDiv = document.getElementById('a-monthly-calc');
+  
   if (!opt || !opt.value) {
     document.getElementById('a-schoolLevel').value = '';
     document.getElementById('a-regFee').value = '';
+    if (cboxDiv) cboxDiv.classList.add('hidden');
+    if (calcDiv) calcDiv.classList.add('hidden');
     return;
   }
   document.getElementById('a-schoolLevel').value = opt.dataset.level || '';
   document.getElementById('a-regFee').value = opt.dataset.reg || '0';
+  
+  // Show subject checkboxes
+  const subjects = (opt.dataset.subjects || '').split(',').map(s => s.trim()).filter(s => s);
+  const monthly = Number(opt.dataset.monthly);
+  const note = opt.dataset.note || '';
+  
+  if (cboxDiv && subjects.length) {
+    cboxDiv.classList.remove('hidden');
+    cboxDiv.innerHTML = '<label class=\"text-xs text-slate-400 block mb-1\">Pilih Subjek (tick):</label>' +
+      subjects.map((s, i) => '<label class=\"inline-flex items-center mr-3 mb-1 cursor-pointer\"><input type=\"checkbox\" class=\"a-subj-cb mr-1\" value=\"' + i + '\" onchange=\"updateMonthlyCalc()\" checked> <span class=\"text-sm text-slate-200\">' + escapeHtml(s) + '</span></label>').join('');
+  }
+  
+  if (calcDiv) {
+    calcDiv.classList.remove('hidden');
+    updateMonthlyCalc();
+  }
+}
+
+function updateMonthlyCalc() {
+  const sel = document.getElementById('a-package');
+  const opt = sel ? sel.selectedOptions[0] : null;
+  if (!opt || !opt.value) return;
+  const monthly = Number(opt.dataset.monthly);
+  const note = opt.dataset.note || '';
+  const checked = document.querySelectorAll('.a-subj-cb:checked').length;
+  let fee = 0;
+  if (monthly > 0) {
+    fee = checked * monthly;
+  } else {
+    const totalMatch = note.match(new RegExp(checked + '\\s*:\\s*RM(\\d+)', 'i'));
+    fee = totalMatch ? Number(totalMatch[1]) : 0;
+  }
+  document.getElementById('a-monthly-calc').innerHTML = '💰 Yuran Bulanan: <b class=\"text-lg\">RM' + fee + '</b> (' + checked + ' subjek × RM' + (monthly || 'tiered') + ')';
 }
 
 async function submitStudent() {
@@ -162,18 +200,26 @@ async function submitStudent() {
   if (pkgOpt && pkgOpt.dataset.subjects) {
     // Delete existing enrollments for this student first
     await deleteEnrollmentsByStudent(res.studentID);
-    const subjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
+    const allSubjects = pkgOpt.dataset.subjects.split(',').map(s => s.trim()).filter(s => s);
+    // Only enroll checked subjects
+    const checkedCbs = document.querySelectorAll('.a-subj-cb:checked');
+    const selectedSubjects = [];
+    checkedCbs.forEach(cb => {
+      const idx = parseInt(cb.value);
+      if (idx >= 0 && idx < allSubjects.length) selectedSubjects.push(allSubjects[idx]);
+    });
+    if (!selectedSubjects.length) selectedSubjects.push(allSubjects[0]); // at least 1
     const monthly = Number(pkgOpt.dataset.monthly);
     const note = pkgOpt.dataset.note || '';
     if (monthly > 0) {
-      monthlyFee = subjects.length * monthly;
-      for (const subj of subjects) {
+      monthlyFee = selectedSubjects.length * monthly;
+      for (const subj of selectedSubjects) {
         await addEnrollment({ studentID: res.studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
       }
     } else {
-      const totalMatch = note.match(new RegExp(subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+      const totalMatch = note.match(new RegExp(selectedSubjects.length + '\\\\s*:\\\\s*RM(\\\\d+)', 'i'));
       monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
-      await addEnrollment({ studentID: res.studentID, subject: subjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
+      await addEnrollment({ studentID: res.studentID, subject: selectedSubjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
     }
     await updateStudent(res.studentID, { monthlyFee: monthlyFee });
   }
@@ -190,6 +236,10 @@ function clearStudentForm() {
   });
   const pkg = document.getElementById('a-package');
   if (pkg) pkg.value = '';
+  const cboxDiv = document.getElementById('a-subjects-checkboxes');
+  if (cboxDiv) cboxDiv.classList.add('hidden');
+  const calcDiv = document.getElementById('a-monthly-calc');
+  if (calcDiv) calcDiv.classList.add('hidden');
   document.getElementById('a-startMonth').value = new Date().toISOString().slice(0, 7);
 }
 
