@@ -336,62 +336,71 @@ function editStudent(studentID) {
     document.body.appendChild(modal);
   }
 
+  loadPackages();
+  const pkgOpts = currentPackages.map((pkg, i) => 
+    '<option value="' + i + '" ' + (pkg.level === s.schoolLevel ? 'selected' : '') + '>' + escapeHtml(pkg.level) + ' (RM' + (pkg.monthly || 'pakej') + '/subjek)</option>'
+  ).join('');
+
   modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 fade-in max-h-[90vh] overflow-y-auto">
+    <div class="bg-slate-800 rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 fade-in max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-bold text-amber-400">Edit Pelajar</h3>
-        <button onclick="document.getElementById('edit-student-modal').remove()" class="text-slate-400 hover:text-red-500 text-xl">&times;</button>
+        <button onclick="document.getElementById('edit-student-modal').remove()" class="text-slate-400 hover:text-red-400 text-xl">&times;</button>
       </div>
       <p class="text-sm text-slate-400 mb-4">Student ID: <strong>${escapeHtml(s.studentID)}</strong></p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-slate-400">IC Ibu Bapa</label>
-          <input id="edit-parentIC" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(String(s.parentIC))}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Nama Ibu Bapa</label>
-          <input id="edit-parentName" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(s.parentName)}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">No. Telefon</label>
-          <input id="edit-parentPhone" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(s.parentPhone)}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Nama Pelajar</label>
-          <input id="edit-studentName" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(s.studentName)}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Tahap</label>
-          <select id="edit-schoolLevel" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
-            <option value="">Pilih Tahap</option>
-            ${['Darjah 1 & 2','Darjah 3, 4, 5 & 6','UPKK','Tingkatan 1, 2, 3 & 4','Tingkatan 5','Kelas Membaca','Personal Class (1 to 1)'].map(lv => `<option ${lv === s.schoolLevel ? 'selected' : ''}>${lv}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Yuran Pendaftaran (RM)</label>
-          <input id="edit-regFee" type="number" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(s.registrationFee||0)}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Bulan Mula Yuran</label>
-          <input id="edit-startMonth" type="month" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${escapeHtml(s.startMonth || '')}" />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Status</label>
-          <select id="edit-status" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
-            <option value="Active" ${s.status === 'Active' ? 'selected' : ''}>Aktif</option>
-            <option value="Inactive" ${s.status === 'Inactive' ? 'selected' : ''}>Tidak Aktif</option>
-          </select>
-        </div>        <div>
-          <label class="text-xs text-slate-500">Tambahan Khas (RM)</label>
-          <input id="edit-specialFee" type="number" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(s.specialFee||0)}" />
-          <p class="text-xs text-slate-500 mt-1">Untuk subjek khas tambahan selain pakej</p>
-        </div>      </div>
+        <div><label class="text-xs text-slate-400">IC Ibu Bapa</label><input id="edit-parentIC" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full" value="${escapeHtml(String(s.parentIC))}" /></div>
+        <div><label class="text-xs text-slate-400">Nama Ibu Bapa</label><input id="edit-parentName" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full" value="${escapeHtml(s.parentName)}" /></div>
+        <div><label class="text-xs text-slate-400">No. Telefon</label><input id="edit-parentPhone" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full" value="${escapeHtml(s.parentPhone)}" /></div>
+        <div><label class="text-xs text-slate-400">Nama Pelajar</label><input id="edit-studentName" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full" value="${escapeHtml(s.studentName)}" /></div>
+        <div class="md:col-span-2"><label class="text-xs text-slate-400">Pilih Pakej</label><select id="edit-package" onchange="onEditPkgChange()" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full"><option value="">-- Pilih Pakej --</option>${pkgOpts}</select></div>
+        <div><label class="text-xs text-slate-400">Tahap (auto)</label><input id="edit-schoolLevel" readonly class="border border-slate-600 bg-slate-600 text-slate-300 rounded-xl px-3 py-2 w-full" value="${escapeHtml(s.schoolLevel||'')}" /></div>
+        <div><label class="text-xs text-slate-400">Yuran Pendaftaran (auto)</label><input id="edit-regFee" type="number" readonly class="border border-slate-600 bg-slate-600 text-slate-300 rounded-xl px-3 py-2 w-full" value="${Number(s.registrationFee||0)}" /></div>
+        <div><label class="text-xs text-slate-400">Bulan Mula</label><input id="edit-startMonth" type="month" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full" value="${escapeHtml(s.startMonth || '')}" /></div>
+        <div><label class="text-xs text-slate-400">Status</label><select id="edit-status" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-3 py-2 w-full"><option value="Active" ${s.status==='Active'?'selected':''}>Aktif</option><option value="Inactive" ${s.status==='Inactive'?'selected':''}>Tidak Aktif</option></select></div>
+      </div>
+      <div id="edit-subjects-checkboxes" class="mt-3 hidden"></div>
+      <div id="edit-monthly-calc" class="mt-3 hidden text-sm text-amber-400 font-medium"></div>
       <div class="flex gap-3 mt-5">
         <button onclick="saveEditStudent('${escapeHtml(s.studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Simpan</button>
-        <button onclick="document.getElementById('edit-student-modal').remove()" class="flex-1 bg-slate-600 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-300 transition">Batal</button>
+        <button onclick="document.getElementById('edit-student-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
       </div>
     </div>
   `;
+  // Trigger package change to show checkboxes
+  setTimeout(onEditPkgChange, 100);
+}
+
+function onEditPkgChange() {
+  var sel = document.getElementById('edit-package');
+  var cboxDiv = document.getElementById('edit-subjects-checkboxes');
+  var calcDiv = document.getElementById('edit-monthly-calc');
+  if (!sel || !sel.value) { if(cboxDiv)cboxDiv.classList.add('hidden'); if(calcDiv)calcDiv.classList.add('hidden'); return; }
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  document.getElementById('edit-schoolLevel').value = pkg.level || '';
+  document.getElementById('edit-regFee').value = pkg.registration || 0;
+  var subjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  if (cboxDiv && subjects.length) {
+    cboxDiv.classList.remove('hidden');
+    cboxDiv.innerHTML = '<label class=\"text-xs text-slate-400 block mb-1\">Pilih Subjek:</label>' +
+      subjects.map(function(s,i){return '<label class=\"inline-flex items-center mr-3 mb-1 cursor-pointer\"><input type=\"checkbox\" class=\"edit-subj-cb mr-1\" value=\"'+i+'\" onchange=\"onEditCalc()\" checked> <span class=\"text-sm text-slate-200\">'+escapeHtml(s)+'</span></label>';}).join('');
+  }
+  if (calcDiv) { calcDiv.classList.remove('hidden'); onEditCalc(); }
+}
+
+function onEditCalc() {
+  var sel = document.getElementById('edit-package');
+  if (!sel || !sel.value) return;
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  var monthly = Number(pkg.monthly);
+  var note = pkg.note || '';
+  var checked = document.querySelectorAll('.edit-subj-cb:checked').length;
+  var fee = 0;
+  if (monthly > 0) { fee = checked * monthly; }
+  else { var m = note.match(new RegExp(checked + '\\\\s*:\\\\s*RM(\\\\d+)', 'i')); fee = m ? Number(m[1]) : 0; }
+  document.getElementById('edit-monthly-calc').innerHTML = '💰 Yuran Bulanan: <b class=\"text-lg\">RM' + fee + '</b> (' + checked + ' subjek)';
 }
 
 async function saveEditStudent(studentID) {
