@@ -587,11 +587,13 @@ function editStudentEnrollments(studentID) {
       <p class="text-sm text-slate-400 mb-4">Pelajar: <strong class="text-slate-200">${escapeHtml(st.studentName)} (${escapeHtml(st.studentID)})</strong><br>Tahap semasa: ${escapeHtml(st.schoolLevel)}</p>
       <div class="mb-4">
         <label class="text-xs text-slate-400">Pilih Pakej Baru</label>
-        <select id="change-pkg-select" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
+        <select id="change-pkg-select" onchange="onChangePkgSelect()" class="border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400">
           <option value="">-- Pilih Pakej --</option>
           ${pkgOpts}
         </select>
       </div>
+      <div id="change-pkg-checkboxes" class="mb-4 hidden"></div>
+      <div id="change-pkg-calc" class="mb-4 hidden text-sm text-amber-400 font-medium"></div>
       <div class="flex gap-3">
         <button onclick="applyPackageChange('${escapeHtml(studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Tukar Pakej</button>
         <button onclick="document.getElementById('change-package-modal').remove()" class="flex-1 bg-slate-600 text-slate-200 py-2.5 rounded-xl font-medium hover:bg-slate-500 transition">Batal</button>
@@ -601,35 +603,72 @@ function editStudentEnrollments(studentID) {
 }
 
 async function applyPackageChange(studentID) {
-  const sel = document.getElementById('change-pkg-select');
+  var sel = document.getElementById('change-pkg-select');
   if (!sel || !sel.value) return alert('Sila pilih pakej.');
-  const pkg = currentPackages[parseInt(sel.value)];
+  var pkg = currentPackages[parseInt(sel.value)];
   if (!pkg) return;
 
-  // Delete old enrollments
+  var allSubjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  // Get checked subjects from the modal
+  var checkedCbs = document.querySelectorAll('.chg-subj-cb:checked');
+  var selectedSubjects = [];
+  if (checkedCbs.length) {
+    checkedCbs.forEach(function(cb){ var i=parseInt(cb.value); if(i>=0 && i<allSubjects.length) selectedSubjects.push(allSubjects[i]); });
+  } else {
+    selectedSubjects = allSubjects; // all if no checkboxes shown
+  }
+  if (!selectedSubjects.length) selectedSubjects.push(allSubjects[0]);
+
   await deleteEnrollmentsByStudent(studentID);
-  
-  // Create new enrollments from package
-  const subjects = pkg.subjects.split(',').map(s => s.trim()).filter(s => s);
-  const monthly = Number(pkg.monthly);
-  let monthlyFee = 0;
+  var monthly = Number(pkg.monthly);
+  var note = pkg.note || '';
+  var monthlyFee = 0;
   if (monthly > 0) {
-    monthlyFee = subjects.length * monthly;
-    for (const subj of subjects) {
-      await addEnrollment({ studentID: studentID, subject: subj, monthlyFee: monthly, hoursPerMonth: 4 });
+    monthlyFee = selectedSubjects.length * monthly;
+    for (var s=0; s<selectedSubjects.length; s++) {
+      await addEnrollment({ studentID: studentID, subject: selectedSubjects[s], monthlyFee: monthly, hoursPerMonth: 4 });
     }
   } else {
-    const totalMatch = pkg.note.match(new RegExp(subjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
+    var totalMatch = note.match(new RegExp(selectedSubjects.length + '\\s*:\\s*RM(\\d+)', 'i'));
     monthlyFee = totalMatch ? Number(totalMatch[1]) : 0;
-    await addEnrollment({ studentID: studentID, subject: subjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
+    await addEnrollment({ studentID: studentID, subject: selectedSubjects.join(', '), monthlyFee: monthlyFee, hoursPerMonth: 4 });
   }
 
-  // Update student record
   await updateStudent(studentID, { schoolLevel: pkg.level, registrationFee: pkg.registration, monthlyFee: monthlyFee });
   
-  alert('Pakej ditukar! ' + subjects.length + ' subjek, RM' + monthlyFee + '/bulan.');
+  alert('Pakej ditukar! ' + selectedSubjects.length + ' subjek, RM' + monthlyFee + '/bulan.');
   document.getElementById('change-package-modal').remove();
   loadAdminData();
+}
+
+function onChangePkgSelect() {
+  var sel = document.getElementById('change-pkg-select');
+  var cboxDiv = document.getElementById('change-pkg-checkboxes');
+  var calcDiv = document.getElementById('change-pkg-calc');
+  if (!sel || !sel.value) { if(cboxDiv)cboxDiv.classList.add('hidden'); if(calcDiv)calcDiv.classList.add('hidden'); return; }
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  var subjects = (pkg.subjects || '').split(',').map(function(s){return s.trim();}).filter(function(s){return s;});
+  if (cboxDiv && subjects.length) {
+    cboxDiv.classList.remove('hidden');
+    cboxDiv.innerHTML = '<label class=\"text-xs text-slate-400 block mb-1\">Pilih Subjek (tick):</label>' +
+      subjects.map(function(s,i){return '<label class=\"inline-flex items-center mr-3 mb-1 cursor-pointer\"><input type=\"checkbox\" class=\"chg-subj-cb mr-1\" value=\"'+i+'\" onchange=\"updateChangeCalc()\" checked> <span class=\"text-sm text-slate-200\">'+escapeHtml(s)+'</span></label>';}).join('');
+  }
+  if (calcDiv) { calcDiv.classList.remove('hidden'); updateChangeCalc(); }
+}
+
+function updateChangeCalc() {
+  var sel = document.getElementById('change-pkg-select');
+  if (!sel || !sel.value) return;
+  var pkg = currentPackages[parseInt(sel.value)];
+  if (!pkg) return;
+  var monthly = Number(pkg.monthly);
+  var note = pkg.note || '';
+  var checked = document.querySelectorAll('.chg-subj-cb:checked').length;
+  var fee = 0;
+  if (monthly > 0) { fee = checked * monthly; }
+  else { var m = note.match(new RegExp(checked + '\\\\s*:\\\\s*RM(\\\\d+)', 'i')); fee = m ? Number(m[1]) : 0; }
+  document.getElementById('change-pkg-calc').innerHTML = '💰 Yuran Bulanan: <b class=\"text-lg\">RM' + fee + '</b> (' + checked + ' subjek)';
 }
 
 async function deleteAllEnrollments(studentID) {
