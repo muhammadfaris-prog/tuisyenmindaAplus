@@ -18,10 +18,18 @@ async function lookupStudent() {
 function showStudentSelector(students) {
   document.getElementById('student-info').classList.remove('hidden');
   var esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
-  var opts = students.map(function(s) {
+  var opts = '<option value=\"\">-- Pilih Pelajar --</option>' + students.map(function(s) {
     return '<option value=\"' + s.studentID + '\">' + esc(s.studentName) + ' (' + esc(s.schoolLevel) + ')</option>';
   }).join('');
-  document.getElementById('student-info').innerHTML = '<div class=\"bg-slate-700/50 rounded-xl p-4 mb-4\"><p class=\"text-sm text-slate-400 mb-2\">' + students.length + ' pelajar dijumpai. Pilih nama:</p><select id=\"student-selector\" onchange=\"onStudentSelect()\" class=\"border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400\"><option value=\"\">-- Pilih Pelajar --</option>' + opts + '</select></div>';
+  // Prepend selector without destroying existing detail elements
+  var container = document.getElementById('student-info');
+  var existing = document.getElementById('student-selector-wrap');
+  if (existing) existing.remove();
+  var wrap = document.createElement('div');
+  wrap.id = 'student-selector-wrap';
+  wrap.className = 'bg-slate-700/50 rounded-xl p-4 mb-4';
+  wrap.innerHTML = '<p class=\"text-sm text-slate-400 mb-2\">' + students.length + ' pelajar dijumpai. Pilih nama:</p><select id=\"student-selector\" onchange=\"onStudentSelect()\" class=\"border border-slate-600 bg-slate-700 text-slate-100 rounded-xl px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-amber-400\">' + opts + '</select>';
+  container.insertBefore(wrap, container.firstChild);
   window._multiStudents = students;
 }
 
@@ -34,6 +42,9 @@ function onStudentSelect() {
 
 function showStudentDetail(data) {
   state.student = data;
+  // Remove selector wrap if present (from multi-student lookup)
+  var selWrap = document.getElementById('student-selector-wrap');
+  if (selWrap) selWrap.remove();
   document.getElementById('student-info').classList.remove('hidden');
   document.getElementById('info-name').textContent = data.studentName;
   document.getElementById('info-phone').textContent = data.parentPhone || '-';
