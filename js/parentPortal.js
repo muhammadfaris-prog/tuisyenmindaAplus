@@ -37,7 +37,7 @@ function showStudentDetail(data) {
   document.getElementById('student-info').classList.remove('hidden');
   document.getElementById('info-name').textContent = data.studentName;
   document.getElementById('info-phone').textContent = data.parentPhone || '-';
-  document.getElementById('info-level').textContent = data.schoolLevel;
+  document.getElementById('info-level').textContent = (data.schoolLevel || '') + ' (Pakej)';
   var esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
   var subjHtml = '';
   if (data.enrollments && data.enrollments.length) {
@@ -46,8 +46,12 @@ function showStudentDetail(data) {
     subjHtml = '<span class=\"text-slate-500\">-</span>';
   }
   document.getElementById('info-subjects').innerHTML = subjHtml;
-  var displayFee = Number(data.monthlyFee || data.monthlyTotal || 0);
-  document.getElementById('info-fee').textContent = displayFee.toFixed(2);
+  var baseFee = Number(data.monthlyFee || data.monthlyTotal || 0);
+  var specialFee = Number(data.specialFee || 0);
+  var displayFee = baseFee + specialFee;
+  var feeHtml = displayFee.toFixed(2);
+  if (specialFee > 0) feeHtml += ' <span class=\"text-xs text-amber-400\">(termasuk RM' + specialFee.toFixed(0) + ' tambahan)</span>';
+  document.getElementById('info-fee').innerHTML = feeHtml;
   document.getElementById('info-reg').textContent = Number(data.registrationFee || 0).toFixed(2);
 
   var now = new Date();

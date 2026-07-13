@@ -38,6 +38,15 @@ function savePackages() {
   alert('Pakej berjaya disimpan.');
 }
 
+function deletePackage(idx) {
+  if (!confirm('PADAM terus pakej ini?')) return;
+  loadPackages();
+  currentPackages.splice(idx, 1);
+  localStorage.setItem('zool_packages', JSON.stringify(currentPackages));
+  renderPackagesEditor();
+  populatePackageDropdown();
+}
+
 function addBlankPackage() {
   loadPackages();
   currentPackages.push({ level: '', subjects: '', hours: '', classSize: '', registration: 0, monthly: 0, note: '' });
@@ -250,7 +259,7 @@ function renderStudents(students) {
         <span class="text-xs font-bold text-amber-400 bg-slate-700 w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
         <div>
           <p class="font-semibold text-slate-100">${escapeHtml(s.studentName)} <span class="text-xs font-normal text-slate-300">(${escapeHtml(s.studentID)})</span></p>
-          <p class="text-sm text-slate-300">${escapeHtml(s.schoolLevel)} • ${escapeHtml(s.parentName)} • ${escapeHtml(s.parentPhone)} • IC: ${escapeHtml(String(s.parentIC))}</p>
+          <p class="text-sm text-slate-300">${escapeHtml(s.schoolLevel)} • RM${Number(s.monthlyFee||0).toFixed(0)}/bln • ${escapeHtml(s.parentName)} • IC: ${escapeHtml(String(s.parentIC))}</p>
           <p class="text-xs text-slate-400">Mula yuran: ${formatMonthYear(s.startMonth)}</p>
         </div>
       </div>
@@ -322,8 +331,11 @@ function editStudent(studentID) {
             <option value="Active" ${s.status === 'Active' ? 'selected' : ''}>Aktif</option>
             <option value="Inactive" ${s.status === 'Inactive' ? 'selected' : ''}>Tidak Aktif</option>
           </select>
-        </div>
-      </div>
+        </div>        <div>
+          <label class="text-xs text-slate-500">Tambahan Khas (RM)</label>
+          <input id="edit-specialFee" type="number" class="border border-slate-600 rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-amber-400" value="${Number(s.specialFee||0)}" />
+          <p class="text-xs text-slate-500 mt-1">Untuk subjek khas tambahan selain pakej</p>
+        </div>      </div>
       <div class="flex gap-3 mt-5">
         <button onclick="saveEditStudent('${escapeHtml(s.studentID)}')" class="flex-1 bg-blue-950 text-amber-400 py-2.5 rounded-xl font-medium hover:bg-blue-900 transition">Simpan</button>
         <button onclick="document.getElementById('edit-student-modal').remove()" class="flex-1 bg-slate-600 text-slate-700 py-2.5 rounded-xl font-medium hover:bg-slate-300 transition">Batal</button>
@@ -341,7 +353,8 @@ async function saveEditStudent(studentID) {
     schoolLevel: document.getElementById('edit-schoolLevel').value,
     registrationFee: document.getElementById('edit-regFee').value,
     startMonth: document.getElementById('edit-startMonth').value,
-    status: document.getElementById('edit-status').value
+    status: document.getElementById('edit-status').value,
+    specialFee: document.getElementById('edit-specialFee').value
   };
   const res = await updateStudent(studentID, updates);
   if (res.error) {

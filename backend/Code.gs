@@ -19,7 +19,7 @@ function getSheet(name) {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const headers = {
-    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status', 'startMonth', 'monthlyFee'],
+    'Students': ['studentID', 'parentIC', 'parentName', 'parentPhone', 'studentName', 'schoolLevel', 'registrationFee', 'registeredAt', 'status', 'startMonth', 'monthlyFee', 'specialFee'],
     'Enrollments': ['enrollmentID', 'studentID', 'subject', 'monthlyFee', 'hoursPerMonth', 'createdAt', 'status'],
     'Payments': ['paymentID', 'studentID', 'parentIC', 'monthYear', 'amountDue', 'amountPaid', 'paymentMethod', 'gatewayBillID', 'gatewayStatus', 'receiptURL', 'receiptFileName', 'adminApproval', 'adminNotes', 'createdAt', 'paidAt']
   };
@@ -118,6 +118,7 @@ function doGet(e) {
       status: r[8],
       startMonth: r[9] || '',
       monthlyFee: r[10] || feeInfo.total,
+      specialFee: r[11] || 0,
       monthlyTotal: feeInfo.total,
       subjects: feeInfo.subjects,
       enrollments: feeInfo.enrollments
@@ -396,6 +397,7 @@ function handleAddStudent(params) {
   const now = new Date();
   const startMonth = params.startMonth || (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
   const monthlyFee = Number(params.monthlyFee || 0);
+  const specialFee = Number(params.specialFee || 0);
 
   sheet.appendRow([
     studentID,
@@ -408,7 +410,8 @@ function handleAddStudent(params) {
     now.toISOString(),
     'Active',
     startMonth,
-    monthlyFee
+    monthlyFee,
+    specialFee
   ]);
 
   return jsonResponse({ success: true, studentID: studentID });
@@ -446,6 +449,8 @@ function handleUpdateStudent(params) {
       if (params.registrationFee !== undefined) sheet.getRange(row, 7).setValue(params.registrationFee);
       if (params.startMonth !== undefined)       sheet.getRange(row, 10).setValue(params.startMonth);
       if (params.status !== undefined)         sheet.getRange(row, 9).setValue(params.status);
+      if (params.monthlyFee !== undefined)     sheet.getRange(row, 11).setValue(params.monthlyFee);
+      if (params.specialFee !== undefined)     sheet.getRange(row, 12).setValue(params.specialFee);
       return jsonResponse({ success: true, studentID: studentID });
     }
   }
@@ -532,7 +537,8 @@ function handleListStudents(params) {
       registrationFee: data[i][6],
       status: data[i][8],
       startMonth: data[i][9] || '',
-      monthlyFee: data[i][10] || 0
+      monthlyFee: data[i][10] || 0,
+      specialFee: data[i][11] || 0
     });
   }
   return jsonResponse({ success: true, students: out });
